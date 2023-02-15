@@ -286,6 +286,31 @@ class PT_hint_max_execution_time : public PT_hint {
   }
 };
 
+class PT_hint_pin : public PT_hint {
+  typedef PT_hint super;
+
+ public:
+  bool pinned;
+
+  explicit PT_hint_pin(ulong milliseconds_arg)
+      : PT_hint(PINNED_HINT, true),
+        pinned(milliseconds_arg>0) {
+          printf("pin hint made \n");
+        }
+  /**
+    Function initializes MAX_EXECUTION_TIME hint
+
+    @param pc   Pointer to Parse_context object
+
+    @return  true in case of error,
+             false otherwise
+  */
+  bool contextualize(Parse_context *pc) override;
+  void append_args(const THD *, String *str) const override {
+    str->append_ulonglong(pinned);
+  }
+};
+
 class PT_hint_sys_var : public PT_hint {
   const LEX_CSTRING sys_var_name;
   Item *sys_var_value;

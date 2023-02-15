@@ -520,6 +520,32 @@ bool PT_hint_max_execution_time::contextualize(Parse_context *pc) {
   return false;
 }
 
+
+bool PT_hint_pin::contextualize(Parse_context *pc) {
+  if (super::contextualize(pc)) return true;
+
+  if (pc->thd->lex->sql_command != SQLCOM_SELECT ||  // not a SELECT statement
+      pc->thd->lex->sphead ||                        // or in a SP/trigger/event
+      pc->select != pc->thd->lex->query_block)       // or in a subquery
+  {
+    //TODO make appropriate warnings
+    push_warning(pc->thd, Sql_condition::SL_WARNING,
+                 ER_WARN_UNSUPPORTED_MAX_EXECUTION_TIME,
+                 ER_THD(pc->thd, ER_WARN_UNSUPPORTED_MAX_EXECUTION_TIME));
+    return false;
+  }
+
+  Opt_hints_global *global_hint = get_global_hints(pc);
+  if (global_hint->is_specified(type())) {
+    print_warn(pc->thd, ER_WARN_CONFLICTING_HINT, nullptr, nullptr, nullptr,
+               this);
+    return false;
+  }
+
+  pc->thd->pin = this->pinned;
+  return false;
+}
+
 bool PT_hint_sys_var::contextualize(Parse_context *pc) {
   if (!sys_var_value) {
     // No warning here, warning is issued by parser.
