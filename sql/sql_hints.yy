@@ -108,6 +108,7 @@ static bool parse_int(longlong *to, const char *from, size_t from_length)
 %token NO_SKIP_SCAN_HINT 1029
 %token HASH_JOIN_HINT 1030
 %token NO_HASH_JOIN_HINT 1031
+%token PIN_HINT 1050
 
 /* Other tokens */
 
@@ -160,6 +161,7 @@ static bool parse_int(longlong *to, const char *from, size_t from_length)
   qb_name_hint
   set_var_hint
   resource_group_hint
+  pin_hint
 
 %type <hint_list> hint_list
 
@@ -233,6 +235,7 @@ hint:
         | max_execution_time_hint
         | set_var_hint
         | resource_group_hint
+        | pin_hint
         ;
 
 
@@ -625,6 +628,25 @@ set_var_hint:
             $$= NEW_PTN PT_hint_sys_var($3, $5);
             if ($$ == NULL)
               YYABORT; // OOM
+          }
+        ;
+
+pin_hint:
+          PIN_HINT '(' HINT_ARG_NUMBER ')'
+          {
+            longlong n;
+            if (parse_int(&n, $3.str, $3.length) || n > UINT_MAX32)
+            {
+              scanner->syntax_warning(ER_THD(thd,
+                                             ER_WARN_BAD_MAX_EXECUTION_TIME));
+              $$= NULL;
+            }
+            else
+            {
+              $$= NEW_PTN PT_hint_pin(n);
+              if ($$ == NULL)
+                YYABORT; // OOM
+            }
           }
         ;
 

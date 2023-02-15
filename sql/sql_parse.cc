@@ -1530,7 +1530,7 @@ static void check_secondary_engine_statement(THD *thd,
   // it may have started sending results to the client.
   if (thd->lex->is_exec_completed()) return;
 
-  // Decide which storage engine to use when retrying.
+  // Decide which storage engine to use when retrying.SECONDARY
   switch (thd->secondary_engine_optimization()) {
     case Secondary_engine_optimization::PRIMARY_TENTATIVELY:
       // If a request to prepare for the secondary engine was
@@ -1549,7 +1549,11 @@ static void check_secondary_engine_statement(THD *thd,
       thd->set_secondary_engine_optimization(
           Secondary_engine_optimization::PRIMARY_ONLY);
       break;
+    case Secondary_engine_optimization::PRIMARY_ONLY:
+      if(thd->pin) break;
+      else return;
     default:
+      printf("didn't get to restart in check_secondary_engine_statement() \n");
       return;
   }
 
@@ -2033,6 +2037,7 @@ bool dispatch_command(THD *thd, const COM_DATA *com_data,
       copy_bind_parameter_values(thd, com_data->com_query.parameters,
                                  com_data->com_query.parameter_count);
 
+      thd->current_plan = 5;
       dispatch_sql_command(thd, &parser_state);
 
       // Check if the statement failed and needs to be restarted in
@@ -5197,6 +5202,8 @@ void dispatch_sql_command(THD *thd, Parser_state *parser_state) {
   DBUG_PRINT("dispatch_sql_command", ("query: '%s'", thd->query().str));
 
   DBUG_EXECUTE_IF("parser_debug", turn_parser_debug_on(););
+
+  printf("I am in dispatch_sql_command() \n");
 
   mysql_reset_thd_for_next_command(thd);
   // It is possible that rewritten query may not be empty (in case of

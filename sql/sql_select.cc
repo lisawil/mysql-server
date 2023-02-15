@@ -760,12 +760,20 @@ bool optimize_secondary_engine(THD *thd) {
 bool Sql_cmd_dml::execute_inner(THD *thd) {
   Query_expression *unit = lex->unit;
 
-  if (unit->optimize(thd, /*materialize_destination=*/nullptr,
+ thd->number_of_plans = 3;
+
+    if (unit->optimize(thd, /*materialize_destination=*/nullptr,
                      /*create_iterators=*/true, /*finalize_access_paths=*/true))
     return true;
 
   // Calculate the current statement cost.
   accumulate_statement_cost(lex);
+
+  if (thd->pin)
+  {
+    printf("will retry optimize %d \n", thd->current_plan);
+    return true;
+  }
 
   // Perform secondary engine optimizations, if needed.
   if (optimize_secondary_engine(thd)) return true;

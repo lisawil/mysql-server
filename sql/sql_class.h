@@ -927,6 +927,11 @@ struct PS_PARAM;
 class THD : public MDL_context_owner,
             public Query_arena,
             public Open_tables_state {
+
+ public:
+ int number_of_plans;
+ int current_plan = 5;
+ bool pin = true;
  public:
   /**
     Controlled memory stats for this session.
