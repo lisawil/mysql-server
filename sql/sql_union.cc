@@ -1159,15 +1159,21 @@ bool Query_expression::optimize(THD *thd, TABLE *materialize_destination,
     return true;
   }
 
-  
+
   printf("optimize done \n");
-  if(thd->pin && (thd->current_plan > thd->number_of_plans)){
-    thd->current_plan--;
+  if(thd->pin){
+    if(thd->best_pinned_plan_found){
+      thd->pin = false;
+      thd->best_pinned_plan_found = false;
+      printf("I leave the pin loop in optimize() \n");
+    }else{
+    thd->current_plan++;
     thd->get_stmt_da()->reset_diagnostics_area();
     thd->get_stmt_da()->set_error_status(thd, ER_PREPARE_FOR_PRIMARY_ENGINE);
     thd->set_secondary_engine_optimization(
           Secondary_engine_optimization::PRIMARY_ONLY);
-  }else{thd->pin = false;} 
+    }
+  }
 
   printf("pin status after optimize: %d \n", thd->pin);
   printf("current plan to optimize is: %d \n", thd->current_plan);
@@ -1793,7 +1799,6 @@ bool Query_expression::ExecuteIteratorQuery(THD *thd) {
         thd->send_kill_message();
         return true;
       }
-
       ++*send_records_ptr;
 
       if (query_result->send_data(thd, *fields)) {
@@ -1833,7 +1838,7 @@ bool Query_expression::execute(THD *thd) {
     current_query_block():
   */
   Change_current_query_block save_query_block(thd);
-
+  
   return ExecuteIteratorQuery(thd);
 }
 

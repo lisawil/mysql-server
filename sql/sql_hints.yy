@@ -410,6 +410,32 @@ qb_level_hint:
               YYABORT; // OOM
           }
           |
+          JOIN_ORDER_HINT '(' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ')'
+          {
+            $$= NEW_PTN PT_qb_level_hint(NULL_CSTR, true, JOIN_ORDER_HINT_ENUM, $4, $8);
+            if ($$ == NULL)
+              YYABORT; // OOM
+          }
+          |
+          JOIN_ORDER_HINT '(' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ')'
+          {
+            $$= NEW_PTN PT_qb_level_hint(NULL_CSTR, true, JOIN_ORDER_HINT_ENUM, $4, $8, $12);
+            if ($$ == NULL)
+              YYABORT; // OOM
+          }
+          |JOIN_ORDER_HINT '(' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ')'
+          {
+            $$= NEW_PTN PT_qb_level_hint(NULL_CSTR, true, JOIN_ORDER_HINT_ENUM, $4, $8, $12, $16);
+            if ($$ == NULL)
+              YYABORT; // OOM
+          }
+          |JOIN_ORDER_HINT '(' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ',' '(' hint_param_table_list ')' ')'
+          {
+            $$= NEW_PTN PT_qb_level_hint(NULL_CSTR, true, JOIN_ORDER_HINT_ENUM, $4, $8, $12, $16, $20);
+            if ($$ == NULL)
+              YYABORT; // OOM
+          }
+          |
           JOIN_ORDER_HINT '(' HINT_ARG_QB_NAME opt_hint_param_table_list_empty_qb ')'
           {
             $$= NEW_PTN PT_qb_level_hint($3, true, JOIN_ORDER_HINT_ENUM, $4);

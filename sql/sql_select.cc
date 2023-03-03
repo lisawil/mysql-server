@@ -760,7 +760,6 @@ bool optimize_secondary_engine(THD *thd) {
 bool Sql_cmd_dml::execute_inner(THD *thd) {
   Query_expression *unit = lex->unit;
 
- thd->number_of_plans = 3;
 
     if (unit->optimize(thd, /*materialize_destination=*/nullptr,
                      /*create_iterators=*/true, /*finalize_access_paths=*/true))
@@ -772,6 +771,22 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
   if (thd->pin)
   {
     printf("will retry optimize %d \n", thd->current_plan);
+    thd->plan_costs[thd->current_plan-1] = lex->thd->m_current_query_cost;
+    if(thd->current_plan > thd->number_of_plans){
+      
+      int index_of_cheapest_plan;
+      double min_cost = 999999999.999;
+
+      for(int i = 0; i<thd->number_of_plans; i++){
+        if(thd->plan_costs[i] < min_cost){
+          min_cost = thd->plan_costs[i];
+          index_of_cheapest_plan = i;
+        }
+      }
+      thd->current_plan = index_of_cheapest_plan + 1;
+      thd->best_pinned_plan_found = 1;
+      printf("best pinned plan found! \n");
+    }
     return true;
   }
 
@@ -785,7 +800,6 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
   } else {
     if (unit->execute(thd)) return true;
   }
-
   return false;
 }
 

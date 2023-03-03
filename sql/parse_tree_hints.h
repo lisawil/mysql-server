@@ -128,6 +128,15 @@ class PT_qb_level_hint : public PT_hint {
   /** List of tables specified in join order hint */
   Hint_param_table_list table_list;
 
+  /** List of tables specified by join order hint, 
+   * when multiple hints have been given*/
+  Hint_param_table_list table_list2;
+  Hint_param_table_list table_list3;
+  Hint_param_table_list table_list4;
+  Hint_param_table_list table_list5;
+
+  uint active_hints_num = 1;
+
   typedef PT_hint super;
 
  public:
@@ -144,6 +153,70 @@ class PT_qb_level_hint : public PT_hint {
         qb_name(qb_name_arg),
         args(0),
         table_list(table_list_arg) {}
+  PT_qb_level_hint(const LEX_CSTRING qb_name_arg, bool switch_state_arg,
+                   enum opt_hints_enum hint_type_arg,
+                   const Hint_param_table_list &table_list_arg,
+                   const Hint_param_table_list &table_list_arg2)
+      : PT_hint(hint_type_arg, switch_state_arg),
+        qb_name(qb_name_arg),
+        args(0),
+        table_list(table_list_arg),
+        table_list2(table_list_arg2),
+        active_hints_num(2) {
+          current_thd->pin = true;
+          current_thd->number_of_plans = 2;
+        }
+  PT_qb_level_hint(const LEX_CSTRING qb_name_arg, bool switch_state_arg,
+                   enum opt_hints_enum hint_type_arg,
+                   const Hint_param_table_list &table_list_arg,
+                   const Hint_param_table_list &table_list_arg2,
+                   const Hint_param_table_list &table_list_arg3)
+      : PT_hint(hint_type_arg, switch_state_arg),
+        qb_name(qb_name_arg),
+        args(0),
+        table_list(table_list_arg),
+        table_list2(table_list_arg2),
+        table_list3(table_list_arg3),
+        active_hints_num(3) {
+          current_thd->pin = true;
+          current_thd->number_of_plans = 3;
+        }
+  PT_qb_level_hint(const LEX_CSTRING qb_name_arg, bool switch_state_arg,
+                   enum opt_hints_enum hint_type_arg,
+                   const Hint_param_table_list &table_list_arg,
+                   const Hint_param_table_list &table_list_arg2,
+                   const Hint_param_table_list &table_list_arg3,
+                   const Hint_param_table_list &table_list_arg4)
+      : PT_hint(hint_type_arg, switch_state_arg),
+        qb_name(qb_name_arg),
+        args(0),
+        table_list(table_list_arg),
+        table_list2(table_list_arg2),
+        table_list3(table_list_arg3),
+        table_list4(table_list_arg4),
+        active_hints_num(4) {
+          current_thd->pin = true;
+          current_thd->number_of_plans = 4;
+        }
+  PT_qb_level_hint(const LEX_CSTRING qb_name_arg, bool switch_state_arg,
+                   enum opt_hints_enum hint_type_arg,
+                   const Hint_param_table_list &table_list_arg,
+                   const Hint_param_table_list &table_list_arg2,
+                   const Hint_param_table_list &table_list_arg3,
+                   const Hint_param_table_list &table_list_arg4,
+                   const Hint_param_table_list &table_list_arg5)
+      : PT_hint(hint_type_arg, switch_state_arg),
+        qb_name(qb_name_arg),
+        args(0),
+        table_list(table_list_arg),
+        table_list2(table_list_arg2),
+        table_list3(table_list_arg3),
+        table_list4(table_list_arg4),
+        table_list5(table_list_arg5),
+        active_hints_num(5) {
+          current_thd->pin = true;
+          current_thd->number_of_plans = 5;
+        }
 
   uint get_args() const { return args; }
 
@@ -165,7 +238,26 @@ class PT_qb_level_hint : public PT_hint {
     @param str             Pointer to String object
   */
   void append_args(const THD *thd, String *str) const override;
-  virtual Hint_param_table_list *get_table_list() { return &table_list; }
+  virtual Hint_param_table_list *get_table_list() { 
+    int curr_plan = current_thd->current_plan; 
+    if(curr_plan == 1 || active_hints_num<2){
+      printf("using hint table list 1 \n");
+      return &table_list;
+    }else if(curr_plan == 2 ||  active_hints_num<3){
+      printf("using hint table list 2 \n");
+      return &table_list2;
+    }else if(curr_plan == 3 ||  active_hints_num<4){
+      printf("using hint table list 3 \n");
+      return &table_list3;
+    }else if(curr_plan == 4 ||  active_hints_num<5){
+      printf("using hint table list 4 \n");
+      return &table_list4;
+    }else if(curr_plan == 5 ||  active_hints_num<6){ //as of now active_hints cannot exceed 5
+      printf("using hint table list 5 \n");
+      return &table_list5;
+    }
+    return &table_list;
+    }
 };
 
 /**

@@ -929,9 +929,12 @@ class THD : public MDL_context_owner,
             public Open_tables_state {
 
  public:
- int number_of_plans;
- int current_plan = 5;
- bool pin = true;
+ int number_of_plans = 1;
+ int current_plan = 1;
+ bool pin = false;
+ bool best_pinned_plan_found = 0;
+ double plan_costs[5];
+
  public:
   /**
     Controlled memory stats for this session.

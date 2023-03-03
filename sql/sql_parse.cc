@@ -2037,7 +2037,7 @@ bool dispatch_command(THD *thd, const COM_DATA *com_data,
       copy_bind_parameter_values(thd, com_data->com_query.parameters,
                                  com_data->com_query.parameter_count);
 
-      thd->current_plan = 5;
+      thd->current_plan = 1;
       dispatch_sql_command(thd, &parser_state);
 
       // Check if the statement failed and needs to be restarted in
