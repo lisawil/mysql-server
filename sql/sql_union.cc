@@ -1168,10 +1168,6 @@ bool Query_expression::optimize(THD *thd, TABLE *materialize_destination,
       printf("I leave the pin loop in optimize() \n");
     }else{
     thd->current_plan++;
-    //thd->get_stmt_da()->reset_diagnostics_area();
-    //thd->get_stmt_da()->set_error_status(thd, ER_PREPARE_FOR_PRIMARY_ENGINE);
-    //thd->set_secondary_engine_optimization(
-      //    Secondary_engine_optimization::PRIMARY_ONLY);
     }
   }
 

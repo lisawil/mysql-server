@@ -773,7 +773,8 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
     if (thd->pin)
     {
       printf("will retry optimize %d \n", thd->current_plan);
-      thd->plan_costs[thd->current_plan-1] = lex->thd->m_current_query_cost;
+      thd->plan_costs[thd->current_plan-2] = lex->thd->m_current_query_cost;
+      printf("current plan cost %f \n", lex->thd->m_current_query_cost);
       if(thd->current_plan > thd->number_of_plans){
         
         int index_of_cheapest_plan;
@@ -782,6 +783,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
         for(int i = 0; i<thd->number_of_plans; i++){
           if(thd->plan_costs[i] < min_cost){
             min_cost = thd->plan_costs[i];
+            printf("current min cost is %f for plan %d \n", min_cost, i);
             index_of_cheapest_plan = i;
           }
         }
