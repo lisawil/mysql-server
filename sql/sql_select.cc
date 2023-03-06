@@ -84,6 +84,7 @@
 #include "sql/join_optimizer/replace_item.h"
 #include "sql/key.h"  // key_copy, key_cmp, key_cmp_if_same
 #include "sql/key_spec.h"
+#include "sql/lex.h"
 #include "sql/lock.h"  // mysql_unlock_some_tables,
 #include "sql/my_decimal.h"
 #include "sql/mysqld.h"  // stage_init
@@ -760,34 +761,44 @@ bool optimize_secondary_engine(THD *thd) {
 bool Sql_cmd_dml::execute_inner(THD *thd) {
   Query_expression *unit = lex->unit;
 
+  for (int j = 0; j<thd->number_of_plans + thd->pin; j++){
 
     if (unit->optimize(thd, /*materialize_destination=*/nullptr,
                      /*create_iterators=*/true, /*finalize_access_paths=*/true))
     return true;
 
-  // Calculate the current statement cost.
-  accumulate_statement_cost(lex);
+    // Calculate the current statement cost.
+    accumulate_statement_cost(lex);
 
-  if (thd->pin)
-  {
-    printf("will retry optimize %d \n", thd->current_plan);
-    thd->plan_costs[thd->current_plan-1] = lex->thd->m_current_query_cost;
-    if(thd->current_plan > thd->number_of_plans){
-      
-      int index_of_cheapest_plan;
-      double min_cost = 999999999.999;
+    if (thd->pin)
+    {
+      printf("will retry optimize %d \n", thd->current_plan);
+      thd->plan_costs[thd->current_plan-1] = lex->thd->m_current_query_cost;
+      if(thd->current_plan > thd->number_of_plans){
+        
+        int index_of_cheapest_plan;
+        double min_cost = 999999999.999;
 
-      for(int i = 0; i<thd->number_of_plans; i++){
-        if(thd->plan_costs[i] < min_cost){
-          min_cost = thd->plan_costs[i];
-          index_of_cheapest_plan = i;
+        for(int i = 0; i<thd->number_of_plans; i++){
+          if(thd->plan_costs[i] < min_cost){
+            min_cost = thd->plan_costs[i];
+            index_of_cheapest_plan = i;
+          }
         }
+        thd->current_plan = index_of_cheapest_plan + 1;
+        thd->best_pinned_plan_found = true;
+        printf("best pinned plan found! \n");
       }
-      thd->current_plan = index_of_cheapest_plan + 1;
-      thd->best_pinned_plan_found = 1;
-      printf("best pinned plan found! \n");
+      // set is_optimized() to false
+      unit->clear_execution();
+      for (Query_block *sl = unit->first_query_block(); sl != nullptr; sl = sl->next_query_block()) {
+      // set join to nullptr again
+        if (sl->join != nullptr) {
+          sl->join->destroy();
+          sl->join = nullptr;
+        }
+       }
     }
-    return true;
   }
 
   // Perform secondary engine optimizations, if needed.
@@ -798,6 +809,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
   if (lex->is_explain()) {
     if (explain_query(thd, thd, unit)) return true; /* purecov: inspected */
   } else {
+    printf("trying to execute \n");
     if (unit->execute(thd)) return true;
   }
   return false;
