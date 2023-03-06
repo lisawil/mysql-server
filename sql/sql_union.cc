@@ -1161,14 +1161,11 @@ bool Query_expression::optimize(THD *thd, TABLE *materialize_destination,
 
 
   printf("optimize done \n");
-  if(thd->pin){
-    if(thd->best_pinned_plan_found){
+  if(thd->pin && thd->best_pinned_plan_found){
       thd->pin = false;
       thd->best_pinned_plan_found = false;
       printf("I leave the pin loop in optimize() \n");
-    }else{
-    thd->current_plan++;
-    }
+    
   }
 
   printf("pin status after optimize: %d \n", thd->pin);

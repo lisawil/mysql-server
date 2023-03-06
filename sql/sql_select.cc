@@ -772,18 +772,20 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
 
     if (thd->pin)
     {
-      printf("will retry optimize %d \n", thd->current_plan);
-      thd->plan_costs[thd->current_plan-2] = lex->thd->m_current_query_cost;
+      thd->plan_costs[thd->current_plan-1] = lex->thd->m_current_query_cost;
       printf("current plan cost %f \n", lex->thd->m_current_query_cost);
+
+      thd->current_plan++;
       if(thd->current_plan > thd->number_of_plans){
         
+        // find plan with best cost
         int index_of_cheapest_plan;
         double min_cost = 999999999.999;
 
         for(int i = 0; i<thd->number_of_plans; i++){
           if(thd->plan_costs[i] < min_cost){
             min_cost = thd->plan_costs[i];
-            printf("current min cost is %f for plan %d \n", min_cost, i);
+            printf("current min cost is %f for plan %d \n", min_cost, i+1);
             index_of_cheapest_plan = i;
           }
         }
@@ -791,6 +793,10 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
         thd->best_pinned_plan_found = true;
         printf("best pinned plan found! \n");
       }
+
+      /*
+      * cleanup for re-optimize
+      */
       // set is_optimized() to false
       unit->clear_execution();
       for (Query_block *sl = unit->first_query_block(); sl != nullptr; sl = sl->next_query_block()) {
@@ -800,6 +806,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
           sl->join = nullptr;
         }
        }
+      printf("will retry optimize %d \n", thd->current_plan);
     }
   }
 
