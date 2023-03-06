@@ -760,6 +760,7 @@ bool optimize_secondary_engine(THD *thd) {
 
 bool Sql_cmd_dml::execute_inner(THD *thd) {
   Query_expression *unit = lex->unit;
+  printf("pin status before optimize loop %d \n", thd->pin);
 
   for (int j = 0; j<thd->number_of_plans + thd->pin; j++){
 
