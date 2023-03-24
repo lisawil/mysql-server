@@ -622,6 +622,8 @@ SET(SQL_SHARED_SOURCES
   trigger_chain.cc
   tztime.cc
   uniques.cc
+  lisa/file_writer.cc
+  lisa/file_reader.cc
   xa.cc
   xa/recovery.cc
   xa/sql_xa_second_phase.cc
