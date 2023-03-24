@@ -933,8 +933,10 @@ class THD : public MDL_context_owner,
  int current_plan = 1;
  bool pin = false;
  bool best_pinned_plan_found = 0;
- double plan_costs[5];
+ double plan_costs[5]; //TODO LISA run plan 5 without replan if best
 
+
+bool hash_pinned = true;
  public:
   /**
     Controlled memory stats for this session.

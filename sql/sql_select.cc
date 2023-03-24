@@ -126,6 +126,8 @@
 #include "template_utils.h"
 #include "thr_lock.h"
 
+#include <sql/lisa/file_writer.h>
+
 using std::max;
 using std::min;
 
@@ -761,6 +763,8 @@ bool optimize_secondary_engine(THD *thd) {
 bool Sql_cmd_dml::execute_inner(THD *thd) {
   Query_expression *unit = lex->unit;
   printf("pin status before optimize loop %d \n", thd->pin);
+
+   FileWriter::write_to_debug(thd->m_token_array);
 
   for (int j = 0; j<thd->number_of_plans + thd->pin; j++){
 
@@ -1738,6 +1742,7 @@ void JOIN::destroy() {
       qep_tab[i].cleanup();
     }
   } else if (thd->lex->using_hypergraph_optimizer) {
+    thd->hash_pinned = true;
     // Same, for hypergraph queries.
     for (Table_ref *tl = query_block->leaf_tables; tl; tl = tl->next_leaf) {
       TABLE *table = tl->table;

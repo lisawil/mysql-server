@@ -1783,13 +1783,65 @@ std::string PrintQueryPlan(int level, AccessPath *path, JOIN *join,
   format.ExplainPrintTreeNode(json.get(), level, &explain, /*tokens=*/nullptr);
   return explain;
 }
-
+/*
 // 0x
 // truncated_sha256(desc1,desc2,...,[child1_desc:]0xchild1,[child2_desc:]0xchild2,...)
 static string GetForceSubplanToken(const Json_object *obj,
                                    const string &children_digest) {
   string digest;
   digest += down_cast<Json_string *>(obj->get("operation"))->value() +
+            children_digest;
+
+  unsigned char sha256sum[SHA256_DIGEST_LENGTH];
+  (void)SHA_EVP256(pointer_cast<const unsigned char *>(digest.data()),
+                   digest.size(), sha256sum);
+
+  char ret[8 * 2 + 2 + 1];
+  snprintf(ret, sizeof(ret), "0x%02x%02x%02x%02x%02x%02x%02x%02x", sha256sum[0],
+           sha256sum[1], sha256sum[2], sha256sum[3], sha256sum[4], sha256sum[5],
+           sha256sum[6], sha256sum[7]);
+
+  return ret;
+}
+
+*/
+static void RemoveParameters(string &json_for_digest){
+  int min_search_pos;
+  int pos_of_comparator = -1;
+  if(json_for_digest.find("Filter") != std::string::npos){
+    
+    min_search_pos = 10;
+  }else if(json_for_digest.find("Index lookup") != std::string::npos || json_for_digest.find("Index range scan") != std::string::npos ){
+    min_search_pos = 20;
+
+  }else {return;}
+  do { 
+    int pos_of_equals = json_for_digest.find("=", min_search_pos) == std::string::npos ? 10000000 : json_for_digest.find("=", min_search_pos);
+    int pos_of_greater = json_for_digest.find(">", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find(">", min_search_pos);
+    int pos_of_lesser = json_for_digest.find("<", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find("<", min_search_pos);
+
+    pos_of_comparator = std::min(pos_of_equals, std::min(pos_of_greater, pos_of_lesser));
+
+
+    if(pos_of_comparator<10000000){
+        int pos_of_parenthesis = json_for_digest.find(")", pos_of_comparator);
+        json_for_digest.erase(pos_of_comparator+1, pos_of_parenthesis-1);
+        min_search_pos = pos_of_comparator+1;
+    }
+  }while(pos_of_comparator<10000000);
+  
+
+
+}
+
+static string GetForceSubplanToken2(const Json_object *obj,
+                                   const string &children_digest) {
+  string digest;
+  string json_for_digest = down_cast<Json_string *>(obj->get("operation"))->value();
+
+  RemoveParameters(json_for_digest);
+
+  digest += json_for_digest +
             children_digest;
 
   unsigned char sha256sum[SHA256_DIGEST_LENGTH];
@@ -1877,7 +1929,7 @@ void Explain_format_tree::ExplainPrintTreeNode(const Json_dom *json, int level,
      Also append it to the subplan_token vector because parent will need it
      for generating its own subplan token.
      */
-    string my_subplan_token = GetForceSubplanToken(obj, children_digest);
+    string my_subplan_token = GetForceSubplanToken2(obj, children_digest);
     *explain += '[' + my_subplan_token + "] ";
     subplan_token->push_back(my_subplan_token);
   }

@@ -66,6 +66,17 @@ struct POSITION;
 struct RelationalExpression;
 struct TABLE;
 
+
+
+struct PinContext
+{
+  bool pinned = 0;
+  int pin_number = 0;
+  bool final_plan = 0; 
+};
+
+
+
 /**
   A specification that two specific relational expressions
   (e.g., two tables, or a table and a join between two other tables)
@@ -298,6 +309,8 @@ struct AccessPath {
   /// of a SET DEBUG force_subplan_0x... statement.
   bool forced_by_dbug : 1;
 #endif
+
+  PinContext pinned;
 
   /// For UPDATE and DELETE statements: The node index of a table which can be
   /// updated or deleted from immediately as the rows are read from the
@@ -1214,7 +1227,7 @@ static_assert(std::is_trivially_destructible<AccessPath>::value,
               "on the MEM_ROOT and not wrapped in unique_ptr_destroy_only"
               "(because multiple candidates during planning could point to "
               "the same access paths, and refcounting would be expensive)");
-static_assert(sizeof(AccessPath) <= 144,
+static_assert(sizeof(AccessPath) <= 160, //TODO Lisa find exact
               "We are creating a lot of access paths in the join "
               "optimizer, so be sure not to bloat it without noticing. "
               "(96 bytes for the base, 48 bytes for the variant.)");

@@ -119,6 +119,7 @@
 #include "sql/uniques.h"
 #include "sql/window.h"
 #include "template_utils.h"
+#include "sql/lisa/file_reader.h"
 
 using hypergraph::Hyperedge;
 using hypergraph::Node;
@@ -4188,6 +4189,13 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
     }
   }
 
+  if(a.pinned.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
+  }
+  if(b.pinned.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
+  }
+
   // Numerical cost dimensions are compared fuzzily in order to treat paths
   // with insignificant differences as identical.
   constexpr double fuzz_factor = 1.01;
@@ -4570,6 +4578,10 @@ AccessPath *CostingReceiver::ProposeAccessPath(
     DBUG_EXECUTE_IF(token.c_str(), path->forced_by_dbug = true;);
   });
 
+  if(current_thd->hash_pinned){
+    FileReader::ReadPinContextFromFile(m_thd->m_token_array, GetForceSubplanToken(path,  m_query_block->join), path);
+  }
+  
   if (existing_paths->empty()) {
     if (m_trace != nullptr) {
       *m_trace += " - " +
@@ -6917,7 +6929,17 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
              "All plans were rejected by the secondary storage engine.");
     return nullptr;
   }
+  //remove non-pinned alternatives from the list
+  if(thd->hash_pinned){
+    for (size_t i = 0; i < root_candidates.size(); ++i) {
+      if(!root_candidates[i]->pinned.pinned){
+        (root_candidates)[i] = root_candidates.back();
+        root_candidates.pop_back();
+        --i;
+      }
+    }
 
+  }
   // TODO(sgunders): If we are part of e.g. a derived table and are streamed,
   // we might want to keep multiple root paths around for future use, e.g.,
   // if there is a LIMIT higher up.
@@ -6926,6 +6948,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                         [](const AccessPath *a, const AccessPath *b) {
                           return a->cost < b->cost;
                         });
+  thd->hash_pinned=true;
 
   // Materialize the result if a top-level query block has the SQL_BUFFER_RESULT
   // option, and the chosen root path isn't already a materialization path. Skip
