@@ -46,6 +46,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <unordered_map>
 
 #include "dur_prop.h"  // durability_properties
 #include "lex_string.h"
@@ -937,6 +938,11 @@ class THD : public MDL_context_owner,
 
 
 bool hash_pinned = true;
+
+//std::unordered_map<unsigned char* digest, std::unordered_map<std::string, int>> hash_map = nullptr;
+//std::unordered_map<std::string, int> curr_query_subplan_token_map = nullptr;
+std::unordered_map<std::string, int> subplan_token_map;
+
  public:
   /**
     Controlled memory stats for this session.

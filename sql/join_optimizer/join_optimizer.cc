@@ -4189,10 +4189,10 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
     }
   }
 
-  if(a.pinned.pinned){
+  if(a.pinned){
     flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
   }
-  if(b.pinned.pinned){
+  if(b.pinned){
     flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
   }
 
@@ -4578,8 +4578,11 @@ AccessPath *CostingReceiver::ProposeAccessPath(
     DBUG_EXECUTE_IF(token.c_str(), path->forced_by_dbug = true;);
   });
 
-  if(current_thd->hash_pinned){
-    FileReader::ReadPinContextFromFile(m_thd->m_token_array, GetForceSubplanToken(path,  m_query_block->join), path);
+  std::unordered_map<std::string, int>::const_iterator it = current_thd->subplan_token_map.find(std::string(reinterpret_cast<char*>(current_thd->m_token_array))+GetForceSubplanToken(path, m_query_block->join));
+  if(it != current_thd->subplan_token_map.end() && it->second){
+    path->pinned = true;
+    current_thd->hash_pinned = true;
+    printf("I am hash_pinned! So path is now pinned! \n");
   }
   
   if (existing_paths->empty()) {
@@ -6932,12 +6935,13 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
   //remove non-pinned alternatives from the list
   if(thd->hash_pinned){
     for (size_t i = 0; i < root_candidates.size(); ++i) {
-      if(!root_candidates[i]->pinned.pinned){
+      if(!root_candidates[i]->pinned){
         (root_candidates)[i] = root_candidates.back();
         root_candidates.pop_back();
         --i;
       }
     }
+    thd->hash_pinned = false;
 
   }
   // TODO(sgunders): If we are part of e.g. a derived table and are streamed,

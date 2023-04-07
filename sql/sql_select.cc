@@ -764,7 +764,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
   Query_expression *unit = lex->unit;
   printf("pin status before optimize loop %d \n", thd->pin);
 
-   FileWriter::write_to_debug(thd->m_token_array);
+   //FileWriter::write_to_debug(thd->m_token_array);
 
   for (int j = 0; j<thd->number_of_plans + thd->pin; j++){
 

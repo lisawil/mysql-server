@@ -67,16 +67,6 @@ struct RelationalExpression;
 struct TABLE;
 
 
-
-struct PinContext
-{
-  bool pinned = 0;
-  int pin_number = 0;
-  bool final_plan = 0; 
-};
-
-
-
 /**
   A specification that two specific relational expressions
   (e.g., two tables, or a table and a join between two other tables)
@@ -310,7 +300,7 @@ struct AccessPath {
   bool forced_by_dbug : 1;
 #endif
 
-  PinContext pinned;
+  bool pinned;
 
   /// For UPDATE and DELETE statements: The node index of a table which can be
   /// updated or deleted from immediately as the rows are read from the
