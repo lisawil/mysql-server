@@ -74,6 +74,7 @@
 #include "sql/table.h"             // table
 #include "sql/thd_raii.h"          // Prepared_stmt_arena_holder
 #include "sql_string.h"
+#include "sql/lisa/file_reader.h"
 
 using std::min;
 using std::string;
@@ -1421,7 +1422,12 @@ int sql_set_variables(THD *thd, List<set_var_base> *var_list, bool opened) {
   if (!thd->lex->unit->is_prepared()) {
     lex->using_hypergraph_optimizer =
         thd->optimizer_switch_flag(OPTIMIZER_SWITCH_HYPERGRAPH_OPTIMIZER);
-
+    //TODO Lisa?
+      if (thd->lex->using_hypergraph_optimizer)
+      {
+        FileReader::ReadPinContextFromFile();
+      }
+      
     Prepared_stmt_arena_holder ps_arena_holder(thd);
     while ((var = it++)) {
       if ((error = var->resolve(thd))) goto err;

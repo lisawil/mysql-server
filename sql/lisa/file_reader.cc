@@ -9,11 +9,10 @@
 #include <vector>
 #include <string>
 #include "sql/join_optimizer/access_path.h"
+#include <unordered_map>
 
 
-void FileReader::ReadPinContextFromFile(unsigned char* digest, 
-                                        std::string sub_plan_token,  
-                                        AccessPath *path){
+void FileReader::ReadPinContextFromFile(){
 
     std::string fileName = "pinned_hashes.csv";
     // Open input file
@@ -27,19 +26,24 @@ void FileReader::ReadPinContextFromFile(unsigned char* digest,
         std::cerr << "File could not be opened: " << fileName << std::endl;
     }
     else {
+
+        std::unordered_map<std::string, int> temp;
         // File could be opened. Now we want to read line by line
         std::string line{};
 
         // Read the complete file
-        bool pinned = false;
+        //bool pinned = false;
         while (getline(file, line)) {
 
             // Split string into parts
             std::vector part(std::sregex_token_iterator(line.begin(), line.end(), separator, -1), {});
-            if(part[0] == std::string(reinterpret_cast<char*>(digest)))
-                {
-                    pinned = true;
+           
+                    //pinned = true;
                     for(unsigned int i = 2; i < part.size(); i++){
+                        temp[std::string(part[0])+std::string(part[i])] = std::stoi(part[1]);  
+
+
+                    /*
                     if (sub_plan_token == part[i])
                         {
                             path->pinned.pinned = true;
@@ -52,13 +56,17 @@ void FileReader::ReadPinContextFromFile(unsigned char* digest,
                             return;
                         }
                     }
-                }
+                
+                    */
+                    
+        
+                    }
         }
-        if(!pinned){
-            current_thd->hash_pinned = false;
-        }
-    }
+        using std::swap;
+        swap(current_thd->subplan_token_map, temp);
+    
     file.close();
     return;
+    }
 
 } 
