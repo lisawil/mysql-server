@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <algorithm>
+#include <vector>
 
 #include "m_ctype.h"
 
@@ -523,6 +524,20 @@ void Opt_hints_qb::apply_join_order_hints(JOIN *join) {
     if (set_join_hint_deps(join, hint_table_list, hint->type()))
       //  Skip hint printing in EXPLAIN message.
       join_order_hints_ignored |= 1ULL << hint_idx;
+  }
+}
+
+void Opt_hints_qb::get_join_order_hints_for_hypergraph(std::vector<std::string>& hyp_join_order_hints){
+  for (uint hint_idx = 0; hint_idx < join_order_hints.size(); hint_idx++) {
+    PT_qb_level_hint *hint = join_order_hints[hint_idx];
+    Hint_param_table_list *hint_table_list = hint->get_table_list();
+
+    for (const Hint_param_table *hint_table = hint_table_list->begin();
+    hint_table < hint_table_list->end(); hint_table++) {
+      
+        hyp_join_order_hints.push_back(hint_table->table.str);
+        printf("added hint table to hypergraph join order hint! \n");  
+    }
   }
 }
 

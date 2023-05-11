@@ -6314,8 +6314,9 @@ std::pair<size_t, size_t> CountTreesAndPlans(
           for (RelationalExpression *op : join_ops) {
             op->conflict_rules.clear();
           }
+          vector<string> join_list;
           MakeJoinGraphFromRelationalExpression(thd, expr, /*trace=*/nullptr,
-                                                &graph);
+                                                &graph, join_list);
           CountingReceiver receiver(graph, num_relations);
           ASSERT_FALSE(EnumerateAllConnectedPartitions(graph.graph, &receiver));
           ++num_trees;

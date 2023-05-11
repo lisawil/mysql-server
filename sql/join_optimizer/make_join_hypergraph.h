@@ -187,7 +187,7 @@ bool MakeJoinHypergraph(THD *thd, std::string *trace, JoinHypergraph *graph,
 // Exposed for testing only.
 void MakeJoinGraphFromRelationalExpression(THD *thd, RelationalExpression *expr,
                                            std::string *trace,
-                                           JoinHypergraph *graph);
+                                           JoinHypergraph *graph, std::vector<std::string>& join_order_list);
 
 hypergraph::NodeMap GetNodeMapFromTableMap(
     table_map table_map,

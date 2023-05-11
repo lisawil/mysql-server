@@ -30,6 +30,8 @@
 #include <assert.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <vector>
+#include <string>
 
 #include "lex_string.h"
 #include "m_ctype.h"
@@ -480,6 +482,8 @@ class Opt_hints_qb : public Opt_hints {
     @param join JOIN object
   */
   void apply_join_order_hints(JOIN *join);
+
+  void get_join_order_hints_for_hypergraph(std::vector<std::string>& hyp_join_order_hints);
 
  private:
   void register_join_order_hint(PT_qb_level_hint *hint_arg) {

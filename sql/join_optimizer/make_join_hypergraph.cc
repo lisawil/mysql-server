@@ -62,6 +62,7 @@
 #include "sql/sql_optimizer.h"
 #include "sql/table.h"
 #include "template_utils.h"
+#include "sql/opt_hints.h"
 
 using hypergraph::Hyperedge;
 using hypergraph::Hypergraph;
@@ -2859,6 +2860,8 @@ int AddPredicate(THD *thd, Item *condition, bool was_join_condition,
   Return whether we can find a path from “source” to “destination”, without
   using forbidden_edge_idx.
  */
+
+// DPHyp
 bool AreNodesConnected(const Hypergraph &graph, int source, int destination,
                        int forbidden_edge_idx, NodeMap *seen_nodes) {
   if (source == destination) {
@@ -3084,7 +3087,7 @@ void PromoteCycleJoinPredicates(
  */
 void MakeJoinGraphFromRelationalExpression(THD *thd, RelationalExpression *expr,
                                            string *trace,
-                                           JoinHypergraph *graph) {
+                                           JoinHypergraph *graph, std::vector<std::string>& join_order_list) {
   if (expr->type == RelationalExpression::TABLE) {
     graph->graph.AddNode();
     graph->nodes.push_back(JoinHypergraph::Node{
@@ -3096,11 +3099,14 @@ void MakeJoinGraphFromRelationalExpression(THD *thd, RelationalExpression *expr,
     graph->table_num_to_node_num[expr->table->tableno()] =
         graph->graph.nodes.size() - 1;
     expr->nodes_in_subtree = NodeMap{1} << (graph->graph.nodes.size() - 1);
+
+    std::replace(join_order_list.begin(), join_order_list.end(), std::string(expr->table->alias), std::to_string(expr->nodes_in_subtree));
+    
     return;
   }
 
-  MakeJoinGraphFromRelationalExpression(thd, expr->left, trace, graph);
-  MakeJoinGraphFromRelationalExpression(thd, expr->right, trace, graph);
+  MakeJoinGraphFromRelationalExpression(thd, expr->left, trace, graph, join_order_list);
+  MakeJoinGraphFromRelationalExpression(thd, expr->right, trace, graph, join_order_list);
   expr->nodes_in_subtree =
       expr->left->nodes_in_subtree | expr->right->nodes_in_subtree;
 
@@ -3383,7 +3389,8 @@ bool MakeSingleTableHypergraph(THD *thd, const Query_block *query_block,
   table_ref->fetch_number_of_rows();
 
   RelationalExpression *root = MakeRelationalExpression(thd, table_ref);
-  MakeJoinGraphFromRelationalExpression(thd, root, trace, graph);
+  vector<string> dummy_hint_list;
+  MakeJoinGraphFromRelationalExpression(thd, root, trace, graph, dummy_hint_list);
 
   if (Item *const where_cond = query_block->join->where_cond;
       where_cond != nullptr) {
@@ -3551,7 +3558,24 @@ bool MakeJoinHypergraph(THD *thd, string *trace, JoinHypergraph *graph,
   std::fill(begin(graph->table_num_to_node_num),
             end(graph->table_num_to_node_num), -1);
 #endif
-  MakeJoinGraphFromRelationalExpression(thd, root, trace, graph);
+
+vector<string> join_order_hints;
+  if(thd->pin){
+
+     if (query_block->opt_hints_qb &&
+      !(query_block->active_options() & SELECT_STRAIGHT_JOIN)){
+
+        query_block->opt_hints_qb->get_join_order_hints_for_hypergraph(join_order_hints);
+        
+      }
+      printf("hypergraph hint list has entered the hypergraph %s", join_order_hints.at(0).c_str());
+  }
+
+  MakeJoinGraphFromRelationalExpression(thd, root, trace, graph, join_order_hints);
+
+  for(u_int i = 0; i<join_order_hints.size(); i++){
+    printf("hints: %s \n", join_order_hints[i].c_str());
+  }
 
   // Now that we have the hypergraph construction done, it no longer hurts
   // to remove impossible conditions.
