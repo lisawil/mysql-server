@@ -300,7 +300,11 @@ struct AccessPath {
   bool forced_by_dbug : 1;
 #endif
 
+  /// @brief is this AccessPath pinned by hash pinning
   bool pinned;
+
+  /// @brief is this AccessPath hinted by an optimizer hint
+  bool hinted;
 
   /// For UPDATE and DELETE statements: The node index of a table which can be
   /// updated or deleted from immediately as the rows are read from the

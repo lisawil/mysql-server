@@ -205,7 +205,8 @@ TEST_F(MakeHypergraphTest, SingleTable) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -228,7 +229,8 @@ TEST_F(MakeHypergraphTest, InnerJoin) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -269,7 +271,8 @@ TEST_F(MakeHypergraphTest, OuterJoin) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -309,7 +312,8 @@ TEST_F(MakeHypergraphTest, OuterJoinNonNullRejecting) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -351,7 +355,8 @@ TEST_F(MakeHypergraphTest, SemiJoin) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -392,7 +397,8 @@ TEST_F(MakeHypergraphTest, AntiJoin) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -434,7 +440,8 @@ TEST_F(MakeHypergraphTest, Predicates) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -476,7 +483,8 @@ TEST_F(MakeHypergraphTest, PushdownFromOuterJoinCondition) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -529,7 +537,8 @@ TEST_F(MakeHypergraphTest, AssociativeRewriteToImprovePushdown) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -580,7 +589,8 @@ TEST_F(MakeHypergraphTest, Cycle) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -660,7 +670,8 @@ TEST_F(MakeHypergraphTest, NoCycleBelowOuterJoin) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -704,7 +715,8 @@ TEST_F(MakeHypergraphTest, CyclePushedFromOuterJoinCondition) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -768,7 +780,8 @@ TEST_F(MakeHypergraphTest, CycleWithNullSafeEqual) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -805,7 +818,8 @@ TEST_F(MakeHypergraphTest, MultipleEqualitiesCauseCycle) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -856,7 +870,8 @@ TEST_F(MakeHypergraphTest, CyclesGetConsistentSelectivities) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -883,7 +898,8 @@ TEST_F(MakeHypergraphTest, MultiEqualityPredicateAppliedOnce) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -936,7 +952,8 @@ TEST_F(MakeHypergraphTest, MultiEqualityPredicateNoRedundantJoinCondition) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -989,7 +1006,8 @@ TEST_F(MakeHypergraphTest, MultiEqualityPredicateNoRedundantJoinCondition2) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1053,7 +1071,8 @@ TEST_F(MakeHypergraphTest, ConflictRulesWithManyTables) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1091,7 +1110,8 @@ TEST_F(MakeHypergraphTest, HyperpredicatesDoNotBlockExtraCycleEdges) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1144,7 +1164,8 @@ TEST_F(MakeHypergraphTest, Flattening) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1209,7 +1230,8 @@ TEST_F(MakeHypergraphTest, PredicatePromotionOnMultipleEquals) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1290,7 +1312,8 @@ TEST_F(MakeHypergraphTest, MultipleEqualityPushedFromJoinConditions) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1343,7 +1366,8 @@ TEST_F(MakeHypergraphTest, UnpushableMultipleEqualityCausesCycle) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1427,7 +1451,8 @@ TEST_F(MakeHypergraphTest, UnpushableMultipleEqualityWithSameTableTwice) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1494,7 +1519,8 @@ TEST_F(MakeHypergraphTest, EqualityPropagationExpandsTopConjunction) {
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -1547,7 +1573,8 @@ TEST_P(MakeHypergraphMultipleEqualParamTest,
   JoinHypergraph graph(m_thd->mem_root, query_block);
   string trace;
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
 
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
@@ -2598,7 +2625,8 @@ TEST_P(HypergraphOptimizerCyclePredicatesSargableTest,
   SCOPED_TRACE(trace);  // Prints out the trace on failure.
   JoinHypergraph graph(m_thd->mem_root, query_block);
   bool always_false = false;
-  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false));
+  JoinOrderHintTreeNode dummy_node = JoinOrderHintTreeNode();
+  EXPECT_FALSE(MakeJoinHypergraph(m_thd, &trace, &graph, &always_false, dummy_node));
   EXPECT_FALSE(always_false);
   FindSargablePredicates(m_thd, &trace, &graph);
 
@@ -6314,9 +6342,9 @@ std::pair<size_t, size_t> CountTreesAndPlans(
           for (RelationalExpression *op : join_ops) {
             op->conflict_rules.clear();
           }
-          vector<string> join_list;
+          vector<string> join_order_strings;
           MakeJoinGraphFromRelationalExpression(thd, expr, /*trace=*/nullptr,
-                                                &graph, join_list);
+                                                &graph, join_order_strings);
           CountingReceiver receiver(graph, num_relations);
           ASSERT_FALSE(EnumerateAllConnectedPartitions(graph.graph, &receiver));
           ++num_trees;

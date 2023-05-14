@@ -2400,6 +2400,74 @@ table_map FindTESForCondition(table_map used_tables,
   }
 }
 
+
+int ConstructJoinOrderTree(vector<string> join_order_strings, int start, int end, JoinOrderHintTreeNode &node){
+
+  JoinOrderHintTreeNode leftChild = JoinOrderHintTreeNode();
+  JoinOrderHintTreeNode rightChild = JoinOrderHintTreeNode();
+
+  bool left = true;
+
+  printf("before tree loop \n");
+  int i = 0;
+  
+  for(i = start; i< end; i++){ 
+    if(!strcmp(join_order_strings[i].c_str(), "_lp")){
+      printf("_lp in loop \n");
+      i = ConstructJoinOrderTree(join_order_strings, i+1, end, (left ? leftChild: rightChild));
+      if(!left){
+        node.right = &rightChild;
+        printf("break after _lp in loop \n");
+        break;
+      } 
+      node.left = &leftChild;
+      left = false;
+    }else if(!strcmp(join_order_strings[i].c_str(), "rp_")){
+      printf("rp_ in loop \n");
+      continue;
+    }else if(stoull(join_order_strings[i])<MAX_TABLES){//better test? is it readily available?
+      // set table
+      (left ? leftChild: rightChild).bit_map_of_join = stoull(join_order_strings[i]);
+      printf("table in loop: %lu \n", (left ? leftChild.bit_map_of_join: rightChild.bit_map_of_join));
+      if(!left){
+        node.right = &rightChild;
+        printf("break after table in loop \n");
+        break;
+      } 
+      node.left = &leftChild;
+      left = false;
+    }
+    /*else if(i>start){ //dodgey
+      return i+1
+    }
+    */
+    else{ //something is wrong
+      printf("unknown token in list \n");
+      return join_order_strings.size() +1;
+    }
+  }
+  printf("after tree loop \n");
+  printf("left: %lu \n", node.left->bit_map_of_join);
+  printf("right: %lu \n", node.right->bit_map_of_join);
+  node.bit_map_of_join = node.left->bit_map_of_join + node.right->bit_map_of_join;
+  printf("node bitmap: %lu \n", node.bit_map_of_join);
+  printf("now I return: %d \n", i);
+  return i;
+} 
+
+void printTreeTraversal(JoinOrderHintTreeNode node){
+  printf("binary node: %lu \n", node.bit_map_of_join);
+
+  if(AreMultipleBitsSet(node.bit_map_of_join)){
+    printf("left: %lu", node.left->bit_map_of_join);
+    printTreeTraversal((*node.left));
+    printf("left: %lu", node.left->bit_map_of_join);
+    printTreeTraversal((*node.right));
+    printf("survived recursive \n");
+  }
+  return;
+}
+
 }  // namespace
 
 /**
@@ -3099,9 +3167,10 @@ void MakeJoinGraphFromRelationalExpression(THD *thd, RelationalExpression *expr,
     graph->table_num_to_node_num[expr->table->tableno()] =
         graph->graph.nodes.size() - 1;
     expr->nodes_in_subtree = NodeMap{1} << (graph->graph.nodes.size() - 1);
-
-    std::replace(join_order_list.begin(), join_order_list.end(), std::string(expr->table->alias), std::to_string(expr->nodes_in_subtree));
     
+    if(thd->pin){
+      std::replace(join_order_list.begin(), join_order_list.end(), std::string(expr->table->alias), std::to_string(expr->nodes_in_subtree));
+    }
     return;
   }
 
@@ -3422,7 +3491,7 @@ bool MakeSingleTableHypergraph(THD *thd, const Query_block *query_block,
 const JOIN *JoinHypergraph::join() const { return m_query_block->join; }
 
 bool MakeJoinHypergraph(THD *thd, string *trace, JoinHypergraph *graph,
-                        bool *where_is_always_false) {
+                        bool *where_is_always_false, JoinOrderHintTreeNode &join_order_hint_tree_root) {
   const Query_block *query_block = graph->query_block();
 
   if (trace != nullptr) {
@@ -3568,13 +3637,19 @@ vector<string> join_order_hints;
         query_block->opt_hints_qb->get_join_order_hints_for_hypergraph(join_order_hints);
         
       }
-      printf("hypergraph hint list has entered the hypergraph %s", join_order_hints.at(0).c_str());
+      printf("hypergraph hint list has entered the hypergraph %s \n", join_order_hints.at(0).c_str());
   }
 
   MakeJoinGraphFromRelationalExpression(thd, root, trace, graph, join_order_hints);
 
   for(u_int i = 0; i<join_order_hints.size(); i++){
     printf("hints: %s \n", join_order_hints[i].c_str());
+  }
+
+  if(thd->pin){
+    ConstructJoinOrderTree(join_order_hints, 0, join_order_hints.size(), join_order_hint_tree_root);
+    printf("left: %lu\n", join_order_hint_tree_root.left->bit_map_of_join);
+    //printTreeTraversal(join_order_hint_tree_root);
   }
 
   // Now that we have the hypergraph construction done, it no longer hurts

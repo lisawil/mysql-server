@@ -62,6 +62,33 @@ struct SargablePredicate {
   bool is_constant;
 };
 
+class JoinOrderHintTreeNode {
+  public:
+
+  hypergraph::NodeMap bit_map_of_join = 0;
+  int i;
+  JoinOrderHintTreeNode *left;
+  JoinOrderHintTreeNode *right;
+
+  JoinOrderHintTreeNode(){}
+  JoinOrderHintTreeNode* get_ptr(){
+    return this;
+  }
+
+  JoinOrderHintTreeNode get_node(){
+    return *this;
+  }
+  JoinOrderHintTreeNode& get_node_ref(){
+    return *this;
+  }
+  bool operator == (const JoinOrderHintTreeNode &j){
+    printf("using == operator I made \n");
+    if (bit_map_of_join == j.bit_map_of_join)
+      return true;
+    return false;
+  }
+};
+
 /**
   A struct containing a join hypergraph of a single query block, encapsulating
   the constraints given by the relational expressions (e.g. inner joins are
@@ -182,7 +209,7 @@ struct JoinHypergraph {
   to find optimal join planning.
  */
 bool MakeJoinHypergraph(THD *thd, std::string *trace, JoinHypergraph *graph,
-                        bool *where_is_always_false);
+                        bool *where_is_always_false, JoinOrderHintTreeNode &join_order_hint_tree_root);
 
 // Exposed for testing only.
 void MakeJoinGraphFromRelationalExpression(THD *thd, RelationalExpression *expr,

@@ -203,6 +203,7 @@ class NeighborhoodCache {
   NodeMap m_last_neighborhood = 0;
 };
 
+//TODO Lisa read here DPHyp-ish
 /**
   Find the neighborhood of the given subgraph (S); informally, the set of nodes
   immediately reachable from that subgraph. There's an additional constraint
@@ -345,7 +346,7 @@ inline NodeMap FindNeighborhood(const Hypergraph &g, NodeMap subgraph,
 // (see FindNeighborhood()); these are then used as seeds for growing
 // the complement graph.
 //
-// Called EmitCsg() in the DPhyp paper.
+// TODO Lisa: Called EmitCsg() in the DPhyp paper.
 template <class Receiver>
 [[nodiscard]] bool EnumerateComplementsTo(
     const Hypergraph &g, size_t lowest_node_idx, NodeMap subgraph,
@@ -419,7 +420,7 @@ template <class Receiver>
 // will be, or it won't be of much use to us.) If the subgraph is connected,
 // use it as base for enumerating a complement graph before growing it.
 //
-// Called EnumerateCsgRec() in the paper.
+// TODO Lisa: Called EnumerateCsgRec() in the paper.
 template <class Receiver>
 [[nodiscard]] bool ExpandSubgraph(const Hypergraph &g, size_t lowest_node_idx,
                                   NodeMap subgraph, NodeMap full_neighborhood,

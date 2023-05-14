@@ -145,6 +145,7 @@ AccessPath *CreateMaterializationPath(THD *thd, JOIN *join, AccessPath *path,
 AccessPath *GetSafePathToSort(THD *thd, JOIN *join, AccessPath *path,
                               bool need_rowid);
 
+
 /**
   CostingReceiver contains the main join planning logic, selecting access paths
   based on cost. It receives subplans from DPhyp (see enumerate_subgraph.h),
@@ -175,7 +176,8 @@ class CostingReceiver {
       table_map immediate_update_delete_candidates, bool need_rowid,
       SecondaryEngineFlags engine_flags, int subgraph_pair_limit,
       secondary_engine_modify_access_path_cost_t secondary_engine_cost_hook,
-      string *trace)
+      string *trace,
+      JoinOrderHintTreeNode hint_tree_root)
       : m_thd(thd),
         m_query_block(query_block),
         m_access_paths(thd->mem_root),
@@ -194,7 +196,8 @@ class CostingReceiver {
         m_engine_flags(engine_flags),
         m_subgraph_pair_limit(subgraph_pair_limit),
         m_secondary_engine_cost_hook(secondary_engine_cost_hook),
-        m_trace(trace) {
+        m_trace(trace),
+        m_hint_tree(hint_tree_root) {
     // At least one join type must be supported.
     assert(Overlaps(engine_flags,
                     MakeSecondaryEngineFlags(
@@ -449,6 +452,13 @@ class CostingReceiver {
   /// for a given table (but we reuse its memory as long as there are more
   /// tables left to scan).
   MEM_ROOT m_range_optimizer_mem_root;
+
+  /**
+    A binary tree representing the hinted join order of a query 
+    used to determine if a Join is in accordance with the hints or not
+  */
+ 
+  JoinOrderHintTreeNode m_hint_tree;
 
   /// For trace use only.
   string PrintSet(NodeMap x) const {
@@ -3410,7 +3420,22 @@ void CostingReceiver::ProposeHashJoin(
   if (Overlaps(m_update_delete_target_nodes, left | right)) {
     FindTablesToGetRowidFor(&join_path);
   }
+/*
+  if (current_thd->pin){
+    if (edge->expr->left->tables_in_subtree ||
+    edge->expr->right->tables_in_subtree have two + bits set in them and not hinted
+    bye){}
 
+    else if(edge->expr->left->tables_in_subtree &&
+    edge->expr->right->tables_in_subtree have one bit set each, 
+    check the ordering and set hinted if perfect match on order){}
+    
+    else if(edge->expr->left->tables_in_subtree // in hinted combinations 
+    edge->expr->right->tables_in_subtree // in hinted combinations 
+    edge->expr->tables_in_subtree; // in hinted combinations 
+    )
+  }
+*/
   // See the equivalent code in ProposeNestedLoopJoin().
   if (rewrite_semi_to_inner) {
     int ordering_idx = edge->ordering_idx_needed_for_semijoin_rewrite;
@@ -6408,6 +6433,8 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     join->refresh_base_slice();
   }
 
+  JoinOrderHintTreeNode join_order_tree;
+
   // NOTE: Normally, we'd expect join->temp_tables and
   // join->filesorts_to_cleanup to be empty, but since we can get called twice
   // for materialized subqueries, there may already be data there that we must
@@ -6416,7 +6443,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
   // Convert the join structures into a hypergraph.
   JoinHypergraph graph(thd->mem_root, query_block);
   bool where_is_always_false = false;
-  if (MakeJoinHypergraph(thd, trace, &graph, &where_is_always_false)) {
+  if (MakeJoinHypergraph(thd, trace, &graph, &where_is_always_false, join_order_tree)) {
     return nullptr;
   }
 
@@ -6435,6 +6462,26 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
   // that we'd like to use many times.
   CacheCostInfoForJoinConditions(thd, query_block, &graph, trace);
 
+
+  /*
+  if(thd->pin){
+    if (query_block->opt_hints_qb &&
+      !(query_block->active_options() & SELECT_STRAIGHT_JOIN)){
+        
+      }
+    query_block->opt_hints_qb->apply_join_order_hints(join);
+    if (query_block->opt_hints_qb &&
+      !(query_block->active_options() & SELECT_STRAIGHT_JOIN)){
+      
+      for (uint hint_idx = 0; hint_idx < join_order_hints.size(); hint_idx++) {
+        PT_qb_level_hint *hint = join_order_hints[hint_idx];
+        vector<Hint_param_table_list> *hint_table_lists = hint->get_all_table_lists();
+
+      }
+    }
+  }
+
+*/
   // Figure out if any later sort will need row IDs.
   bool need_rowid = false;
   if (query_block->is_explicitly_grouped() || join->order.order != nullptr ||
@@ -6522,7 +6569,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
       sargable_fulltext_predicates, update_delete_target_tables,
       immediate_update_delete_candidates, need_rowid, EngineFlags(thd),
       thd->variables.optimizer_max_subgraph_pairs, secondary_engine_cost_hook,
-      trace);
+      trace, join_order_tree);
   if (graph.edges.empty()) {
     // Fast path for single-table queries. No need to run the join enumeration
     // when there is no join. Just visit the only node directly.
@@ -6559,7 +6606,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
         &active_indexes, &fulltext_searches, fulltext_tables,
         sargable_fulltext_predicates, update_delete_target_tables,
         immediate_update_delete_candidates, need_rowid, EngineFlags(thd),
-        /*subgraph_pair_limit=*/-1, secondary_engine_cost_hook, trace);
+        /*subgraph_pair_limit=*/-1, secondary_engine_cost_hook, trace, join_order_tree);
     // Reset the secondary engine planning flags
     graph.secondary_engine_costing_flags = {};
     if (EnumerateAllConnectedPartitions(graph.graph, &receiver) &&
