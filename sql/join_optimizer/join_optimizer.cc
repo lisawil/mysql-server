@@ -562,6 +562,8 @@ class CostingReceiver {
 
   void CommitBitsetsToHeap(AccessPath *path) const;
   bool BitsetsAreCommitted(AccessPath *path) const;
+  bool IsHintedAccessPath(hypergraph::NodeMap left, hypergraph::NodeMap right, AccessPath *left_path, AccessPath *right_path);
+ 
 };
 
 /// Lists the current secondary engine flags in use. If there is no secondary
@@ -3411,6 +3413,7 @@ void CostingReceiver::ProposeHashJoin(
   join_path.hash_join().rewrite_semi_to_inner = rewrite_semi_to_inner;
   join_path.hash_join().tables_to_get_rowid_for = 0;
   join_path.hash_join().allow_spill_to_disk = true;
+  join_path.hinted = IsHintedAccessPath(left, right, left_path, right_path);
 
   // The rows from the inner side of a hash join come in different order from
   // that of the underlying scan, so we need to store row IDs for any
@@ -3888,6 +3891,7 @@ void CostingReceiver::ProposeNestedLoopJoin(
   join_path.nested_loop_join().already_expanded_predicates = false;
   join_path.nested_loop_join().outer = left_path;
   join_path.nested_loop_join().inner = right_path;
+  join_path.hinted = IsHintedAccessPath(left, right, left_path, right_path);
   if (rewrite_semi_to_inner) {
     // This join is a semijoin (which is non-commutative), but the caller wants
     // us to try to invert it anyway; or to be precise, it has already inverted
@@ -4544,6 +4548,30 @@ void CostingReceiver::CommitBitsetsToHeap(AccessPath *path) const {
                     return false;
                   });
   return all_ok;
+}
+
+bool CostingReceiver::IsHintedAccessPath(hypergraph::NodeMap left, hypergraph::NodeMap right, AccessPath *left_path, AccessPath *right_path){
+  hypergraph::NodeMap in_map = left | right;
+  JoinOrderHintTreeNode* node = &m_hint_tree;
+  while(in_map != node->bit_map_of_join){
+    if((in_map & node->bit_map_of_join) == in_map){
+        if((in_map & node->left->bit_map_of_join) == in_map){
+          node=node->left;
+        }else if((in_map & node->right->bit_map_of_join) == in_map){
+            node = node->right;
+        }else{
+          return false;
+        } 
+    }else{
+      return false;
+      }
+  }
+  if(node->left->bit_map_of_join == left && node->right->bit_map_of_join == right){
+    if((!AreMultipleBitsSet(left) || left_path->hinted) && (!AreMultipleBitsSet(right) || right_path->hinted)){
+      return true;
+    }
+  }
+  return false;
 }
 
 /**

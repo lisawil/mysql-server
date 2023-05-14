@@ -63,30 +63,16 @@ struct SargablePredicate {
 };
 
 class JoinOrderHintTreeNode {
+  //thd->mem_root
   public:
 
+  int index_helper = 0;
+
   hypergraph::NodeMap bit_map_of_join = 0;
-  int i;
   JoinOrderHintTreeNode *left;
   JoinOrderHintTreeNode *right;
 
   JoinOrderHintTreeNode(){}
-  JoinOrderHintTreeNode* get_ptr(){
-    return this;
-  }
-
-  JoinOrderHintTreeNode get_node(){
-    return *this;
-  }
-  JoinOrderHintTreeNode& get_node_ref(){
-    return *this;
-  }
-  bool operator == (const JoinOrderHintTreeNode &j){
-    printf("using == operator I made \n");
-    if (bit_map_of_join == j.bit_map_of_join)
-      return true;
-    return false;
-  }
 };
 
 /**

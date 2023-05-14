@@ -2401,67 +2401,52 @@ table_map FindTESForCondition(table_map used_tables,
 }
 
 
-int ConstructJoinOrderTree(vector<string> join_order_strings, int start, int end, JoinOrderHintTreeNode &node){
-
+JoinOrderHintTreeNode* ConstructJoinOrderTree(vector<string> join_order_strings, int start, int end){
+  
+  JoinOrderHintTreeNode* node = new (current_thd->mem_root) JoinOrderHintTreeNode(); 
   JoinOrderHintTreeNode leftChild = JoinOrderHintTreeNode();
   JoinOrderHintTreeNode rightChild = JoinOrderHintTreeNode();
 
   bool left = true;
 
-  printf("before tree loop \n");
   int i = 0;
   
   for(i = start; i< end; i++){ 
     if(!strcmp(join_order_strings[i].c_str(), "_lp")){
-      printf("_lp in loop \n");
-      i = ConstructJoinOrderTree(join_order_strings, i+1, end, (left ? leftChild: rightChild));
+      (left ? node->left : node->right) = ConstructJoinOrderTree(join_order_strings, i+1, end);
+      i = (left ? node->left : node->right)->index_helper;
       if(!left){
-        node.right = &rightChild;
-        printf("break after _lp in loop \n");
         break;
       } 
-      node.left = &leftChild;
       left = false;
     }else if(!strcmp(join_order_strings[i].c_str(), "rp_")){
-      printf("rp_ in loop \n");
       continue;
     }else if(stoull(join_order_strings[i])<MAX_TABLES){//better test? is it readily available?
       // set table
       (left ? leftChild: rightChild).bit_map_of_join = stoull(join_order_strings[i]);
-      printf("table in loop: %lu \n", (left ? leftChild.bit_map_of_join: rightChild.bit_map_of_join));
       if(!left){
-        node.right = &rightChild;
-        printf("break after table in loop \n");
+        node->right = new (current_thd->mem_root) JoinOrderHintTreeNode(rightChild);
         break;
       } 
-      node.left = &leftChild;
+      node->left = new (current_thd->mem_root) JoinOrderHintTreeNode(leftChild);
       left = false;
     }
-    /*else if(i>start){ //dodgey
-      return i+1
-    }
-    */
     else{ //something is wrong
       printf("unknown token in list \n");
-      return join_order_strings.size() +1;
+      return node;
     }
   }
-  printf("after tree loop \n");
-  printf("left: %lu \n", node.left->bit_map_of_join);
-  printf("right: %lu \n", node.right->bit_map_of_join);
-  node.bit_map_of_join = node.left->bit_map_of_join + node.right->bit_map_of_join;
-  printf("node bitmap: %lu \n", node.bit_map_of_join);
-  printf("now I return: %d \n", i);
-  return i;
+
+  node->bit_map_of_join = node->left->bit_map_of_join + node->right->bit_map_of_join;
+  node->index_helper = i;
+  return node;
 } 
 
 void printTreeTraversal(JoinOrderHintTreeNode node){
   printf("binary node: %lu \n", node.bit_map_of_join);
 
   if(AreMultipleBitsSet(node.bit_map_of_join)){
-    printf("left: %lu", node.left->bit_map_of_join);
     printTreeTraversal((*node.left));
-    printf("left: %lu", node.left->bit_map_of_join);
     printTreeTraversal((*node.right));
     printf("survived recursive \n");
   }
@@ -3647,9 +3632,8 @@ vector<string> join_order_hints;
   }
 
   if(thd->pin){
-    ConstructJoinOrderTree(join_order_hints, 0, join_order_hints.size(), join_order_hint_tree_root);
-    printf("left: %lu\n", join_order_hint_tree_root.left->bit_map_of_join);
-    //printTreeTraversal(join_order_hint_tree_root);
+    join_order_hint_tree_root = *ConstructJoinOrderTree(join_order_hints, 0, join_order_hints.size());
+    printTreeTraversal(join_order_hint_tree_root);
   }
 
   // Now that we have the hypergraph construction done, it no longer hurts
