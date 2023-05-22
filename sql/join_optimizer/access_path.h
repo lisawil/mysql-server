@@ -304,7 +304,7 @@ struct AccessPath {
   bool pinned;
 
   /// @brief is this AccessPath hinted by an optimizer hint
-  bool hinted;
+  bool hinted = false;
 
   /// For UPDATE and DELETE statements: The node index of a table which can be
   /// updated or deleted from immediately as the rows are read from the
@@ -1234,6 +1234,7 @@ inline void CopyBasicProperties(const AccessPath &from, AccessPath *to) {
   to->parameter_tables = from.parameter_tables;
   to->safe_for_rowid = from.safe_for_rowid;
   to->ordering_state = from.ordering_state;
+  to->hinted = from.hinted;
 }
 
 // Trivial factory functions for all of the types of access paths above.
@@ -1465,6 +1466,7 @@ inline AccessPath *NewLimitOffsetAccessPath(THD *thd, AccessPath *child,
   path->limit_offset().reject_multiple_rows = reject_multiple_rows;
   path->limit_offset().send_records_override = send_records_override;
   path->ordering_state = child->ordering_state;
+  path->hinted = child->hinted; //redundant?
   EstimateLimitOffsetCost(path);
   return path;
 }
@@ -1524,6 +1526,7 @@ inline AccessPath *NewStreamingAccessPath(THD *thd, AccessPath *child,
   path->stream().ref_slice = ref_slice;
   // Will be set later if we get a weedout access path as parent.
   path->stream().provide_rowid = false;
+  path->hinted = child->hinted;
   return path;
 }
 

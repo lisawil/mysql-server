@@ -937,7 +937,7 @@ class THD : public MDL_context_owner,
  double plan_costs[5]; //TODO LISA run plan 5 without replan if best
 
 
-bool hash_pinned = true;
+bool hash_pinned = false;
 
 //std::unordered_map<unsigned char* digest, std::unordered_map<std::string, int>> hash_map = nullptr;
 //std::unordered_map<std::string, int> curr_query_subplan_token_map = nullptr;

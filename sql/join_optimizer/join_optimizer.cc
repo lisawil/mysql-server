@@ -211,7 +211,23 @@ class CostingReceiver {
   CostingReceiver &operator=(CostingReceiver &&) = default;
   CostingReceiver(const CostingReceiver &) = delete;
   CostingReceiver(CostingReceiver &&) = default;
+  /*
+  ~CostingReceiver(){
+    deleteHelper(&m_hint_tree);
+  }
 
+
+  void deleteHelper(JoinOrderHintTreeNode *node){
+    if(AreMultipleBitsSet(node->bit_map_of_join)){
+      deleteHelper(node->left);
+      deleteHelper(node->right);
+    if(node != &m_hint_tree){
+       delete node;
+    }
+  }
+  }
+
+  */
   bool HasSeen(NodeMap subgraph) const {
     return m_access_paths.count(subgraph) != 0;
   }
@@ -4225,6 +4241,13 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
     flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
   }
 
+  if(a.hinted && b.hinted){
+  }else if(a.hinted){
+    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
+  }else if(b.hinted){
+    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
+  }
+
   // Numerical cost dimensions are compared fuzzily in order to treat paths
   // with insignificant differences as identical.
   constexpr double fuzz_factor = 1.01;
@@ -4793,6 +4816,7 @@ AccessPath MakeSortPathWithoutFilesort(THD *thd, AccessPath *child,
   sort_path.sort().limit = HA_POS_ERROR;
   sort_path.sort().force_sort_rowids = false;
   EstimateSortCost(&sort_path);
+  sort_path.hinted = child->hinted;
   return sort_path;
 }
 
@@ -5435,6 +5459,8 @@ AccessPath CreateStreamingAggregationPath(THD *thd, AccessPath *path,
   aggregate_path.type = AccessPath::AGGREGATE;
   aggregate_path.aggregate().child = child_path;
   aggregate_path.aggregate().rollup = rollup;
+  aggregate_path.hinted = child_path->hinted;
+
   EstimateAggregateCost(&aggregate_path, query_block, trace);
   return aggregate_path;
 }
@@ -5492,6 +5518,7 @@ void ApplyHavingCondition(THD *thd, Item *having_cond, Query_block *query_block,
     AccessPath filter_path;
     filter_path.type = AccessPath::FILTER;
     filter_path.filter().child = root_path;
+    filter_path.hinted = root_path->hinted;
     filter_path.filter().condition = having_cond;
     // We don't currently bother with materializing subqueries
     // in HAVING, as they should be rare.
@@ -5532,6 +5559,7 @@ AccessPath MakeSortPathForDistinct(
   sort_path.sort().unwrap_rollup = false;
   sort_path.sort().limit = HA_POS_ERROR;
   sort_path.sort().force_sort_rowids = false;
+  sort_path.hinted = root_path->hinted; //nod appliccable?
 
   if (aggregation_is_unordered) {
     // Even though we create a sort node for the distinct operation,
@@ -7007,6 +7035,12 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
              "All plans were rejected by the secondary storage engine.");
     return nullptr;
   }
+
+  AccessPath *root_path =
+      *std::min_element(root_candidates.begin(), root_candidates.end(),
+                        [](const AccessPath *a, const AccessPath *b) {
+                          return a->cost < b->cost;
+                        });
   //remove non-pinned alternatives from the list
   if(thd->hash_pinned){
     for (size_t i = 0; i < root_candidates.size(); ++i) {
@@ -7016,19 +7050,50 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
         --i;
       }
     }
-    thd->hash_pinned = false;
-
-  }
-  // TODO(sgunders): If we are part of e.g. a derived table and are streamed,
-  // we might want to keep multiple root paths around for future use, e.g.,
-  // if there is a LIMIT higher up.
-  AccessPath *root_path =
-      *std::min_element(root_candidates.begin(), root_candidates.end(),
+    AccessPath *candidate_root_path = *std::min_element(root_candidates.begin(), root_candidates.end(),
                         [](const AccessPath *a, const AccessPath *b) {
                           return a->cost < b->cost;
                         });
-  thd->hash_pinned=true;
+            
+    if (&candidate_root_path != root_candidates.end()){
+      if(root_path->cost<candidate_root_path->cost){
+        printf("There is a non-pinned plan with better cost than the pinned one \n");
+      }else{
 
+        printf("There is no non-pinned plan with better cost than the pinned one! \n");
+      }
+      printf("hash_pinned plan sent to execute \n");
+      root_path = candidate_root_path;
+
+
+    }else{
+      printf("no pinned plan could be found! \n");
+    }
+    thd->hash_pinned = false;
+  }else if(thd->pin){//removes all non-hinted alternatives from the list if there are any hinted plans there
+    for (size_t i = 0; i < root_candidates.size(); ++i) {
+      if(!root_candidates[i]->hinted){
+        (root_candidates)[i] = root_candidates.back();
+        root_candidates.pop_back();
+        --i;
+      }
+    }
+    AccessPath *candidate_root_path = *std::min_element(root_candidates.begin(), root_candidates.end(),
+                        [](const AccessPath *a, const AccessPath *b) {
+                          return a->cost < b->cost;
+                        });
+             
+    if (&candidate_root_path != root_candidates.end()){
+      printf("hinted plan sent to execute \n");
+      root_path = candidate_root_path;
+    }else{
+      printf("no hinted plan could be found! \n");
+    }
+  }
+
+  // TODO(sgunders): If we are part of e.g. a derived table and are streamed,
+  // we might want to keep multiple root paths around for future use, e.g.,
+  // if there is a LIMIT higher up.
   // Materialize the result if a top-level query block has the SQL_BUFFER_RESULT
   // option, and the chosen root path isn't already a materialization path. Skip
   // the materialization path when using an external executor, since it will

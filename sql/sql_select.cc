@@ -778,7 +778,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
     if (thd->pin)
     {
       thd->plan_costs[thd->current_plan-1] = lex->thd->m_current_query_cost;
-      printf("current plan cost %f \n", lex->thd->m_current_query_cost);
+      //printf("current plan cost %f \n", lex->thd->m_current_query_cost);
 
       thd->current_plan++;
       if(thd->current_plan > thd->number_of_plans){
@@ -790,28 +790,34 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
         for(int i = 0; i<thd->number_of_plans; i++){
           if(thd->plan_costs[i] < min_cost){
             min_cost = thd->plan_costs[i];
-            printf("current min cost is %f for plan %d \n", min_cost, i+1);
+            //printf("current min cost is %f for plan %d \n", min_cost, i+1);
             index_of_cheapest_plan = i;
           }
         }
         thd->current_plan = index_of_cheapest_plan + 1;
         thd->best_pinned_plan_found = true;
-        printf("best pinned plan found! \n");
+        //printf("best pinned plan found! \n");
       }
-
-      /*
-      * cleanup for re-optimize
-      */
-      // set is_optimized() to false
-      unit->clear_execution();
-      for (Query_block *sl = unit->first_query_block(); sl != nullptr; sl = sl->next_query_block()) {
-      // set join to nullptr again
-        if (sl->join != nullptr) {
-          sl->join->destroy();
-          sl->join = nullptr;
+      if(thd->best_pinned_plan_found && thd->current_plan == thd->number_of_plans){
+        printf("best plan is most recent plan and still usable \n");
+        thd->pin = false;
+        thd->best_pinned_plan_found = false;
+        thd->number_of_plans = 1;
+      }else{
+        /*
+        * cleanup for re-optimize
+        */
+        // set is_optimized() to false
+        unit->clear_execution();
+        for (Query_block *sl = unit->first_query_block(); sl != nullptr; sl = sl->next_query_block()) {
+        // set join to nullptr again
+          if (sl->join != nullptr) {
+            sl->join->destroy();
+            sl->join = nullptr;
+          }
         }
-       }
-      printf("will retry optimize %d \n", thd->current_plan);
+        printf("will retry optimize %d \n", thd->current_plan);
+      }
     }
   }
 
@@ -1742,7 +1748,6 @@ void JOIN::destroy() {
       qep_tab[i].cleanup();
     }
   } else if (thd->lex->using_hypergraph_optimizer) {
-    thd->hash_pinned = true;
     // Same, for hypergraph queries.
     for (Table_ref *tl = query_block->leaf_tables; tl; tl = tl->next_leaf) {
       TABLE *table = tl->table;
