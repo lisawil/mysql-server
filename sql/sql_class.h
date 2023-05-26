@@ -938,6 +938,7 @@ class THD : public MDL_context_owner,
 
 
 bool hash_pinned = false;
+std::string statement_digest_text;
 
 //std::unordered_map<unsigned char* digest, std::unordered_map<std::string, int>> hash_map = nullptr;
 //std::unordered_map<std::string, int> curr_query_subplan_token_map = nullptr;

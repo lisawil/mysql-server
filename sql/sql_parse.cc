@@ -5244,6 +5244,11 @@ void dispatch_sql_command(THD *thd, Parser_state *parser_state) {
     }
   }
 
+  char buf[DIGEST_HASH_TO_STRING_LENGTH+1];
+  DIGEST_HASH_TO_STRING(thd->m_digest->m_digest_storage.m_hash, buf);
+  thd->statement_digest_text = buf;
+  
+  //printf("statement_digest_text: %s \n", thd->statement_digest_text.c_str());
   DEBUG_SYNC_C("sql_parse_before_rewrite");
 
   if (!err) {

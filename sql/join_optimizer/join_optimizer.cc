@@ -4654,11 +4654,11 @@ AccessPath *CostingReceiver::ProposeAccessPath(
     DBUG_EXECUTE_IF(token.c_str(), path->forced_by_dbug = true;);
   });
 
-  std::unordered_map<std::string, int>::const_iterator it = current_thd->subplan_token_map.find(std::string(reinterpret_cast<char*>(current_thd->m_token_array))+GetForceSubplanToken(path, m_query_block->join));
+  std::unordered_map<std::string, int>::const_iterator it = current_thd->subplan_token_map.find(current_thd->statement_digest_text+GetForceSubplanToken(path, m_query_block->join));
   if(it != current_thd->subplan_token_map.end() && it->second){
     path->pinned = true;
     current_thd->hash_pinned = true;
-    printf("I am hash_pinned! So path is now pinned! \n");
+    //printf("I am hash_pinned! So path is now pinned! \n");
   }
   
   if (existing_paths->empty()) {

@@ -1900,7 +1900,7 @@ string Explain_format_tree::ExplainJsonToString(Json_object *json) {
   });
   DBUG_EXECUTE_IF("subplan_tokens", {
     explain += "\nTo hash_pin this plan, use:\n this in file: ";
-    explain += std::string(reinterpret_cast<char*>(current_thd->m_token_array)) + ",";
+    explain += current_thd->statement_digest_text + ",";
     explain += "int_x";
     for (const string &token : tokens_for_force_subplan) {
       explain += ",";
