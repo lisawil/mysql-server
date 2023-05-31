@@ -4,15 +4,31 @@
 #include <fstream>
 #include <assert.h>
 #include <string>
+#include <chrono>
+#include "sql/sql_class.h"
 
-int FileWriter::write_to_debug(unsigned char* to_dump){
+int FileWriter::write_to_log(std::chrono::duration<double> optimize_time, std::chrono::duration<double> execute_time, std::chrono::duration<double> sum_time, THD *thd){
         std::ofstream fout;
-        std::string filename = "pinned_hashes.csv";
+        std::string filename = "experiment_log.csv";
         printf("from write \n");
         fout.open(filename, std::ios::app);
         assert (!fout.fail( ));     
-            fout<<std::string(reinterpret_cast<char*>(to_dump))<<",1,0x83566674cba1407d,0xffbbbfadeccc2ed8,0x78a62a43a1627d3a,0x9433caaba78cd703,0x9ea21e9e5bafb6ea"<<std::endl;
+            fout<< optimize_time.count() <<","<< 
+            execute_time.count() <<","<< 
+            sum_time.count() <<"," <<
+            thd->statement_digest_text<<std::endl;
         fout.close( );
         assert(!fout.fail( ));
         return 0;
     } 
+
+int FileWriter::explain_log_helper(std::string hashes){
+        std::ofstream fout;
+        std::string filename = "explain_log.csv";
+        fout.open(filename, std::ios::app);
+        assert (!fout.fail( ));     
+            fout<< hashes<<std::endl;
+        fout.close( );
+        assert(!fout.fail( ));
+        return 0;
+    }

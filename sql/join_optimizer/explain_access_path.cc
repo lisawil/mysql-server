@@ -56,6 +56,7 @@
 #include "sql/table.h"
 #include "template_utils.h"
 
+#include <sql/lisa/file_writer.h>
 using std::string;
 using std::vector;
 
@@ -1829,9 +1830,6 @@ static void RemoveParameters(string &json_for_digest){
         min_search_pos = pos_of_comparator+1;
     }
   }while(pos_of_comparator<10000000);
-  
-
-
 }
 
 static string GetForceSubplanToken2(const Json_object *obj,
@@ -1882,10 +1880,8 @@ string Explain_format_tree::ExplainJsonToString(Json_object *json) {
   string explain;
 
   vector<string> *token_ptr = nullptr;
-#ifndef NDEBUG
   vector<string> tokens_for_force_subplan;
-  DBUG_EXECUTE_IF("subplan_tokens", token_ptr = &tokens_for_force_subplan;);
-#endif
+  token_ptr = &tokens_for_force_subplan;
 
   this->ExplainPrintTreeNode(json, 0, &explain, token_ptr);
   if (explain.empty()) return "";
@@ -1898,16 +1894,20 @@ string Explain_format_tree::ExplainJsonToString(Json_object *json) {
     }
     explain += "';\n";
   });
-  DBUG_EXECUTE_IF("subplan_tokens", {
-    explain += "\nTo hash_pin this plan, use:\n this in file: ";
-    explain += current_thd->statement_digest_text + ",";
-    explain += "int_x";
-    for (const string &token : tokens_for_force_subplan) {
-      explain += ",";
-      explain += token;
-    }
-    explain += "';\n";
-  });
+ 
+  string helper = "";
+  explain += "\nTo hash_pin this plan, use:\n this in file: ";
+  helper += current_thd->statement_digest_text + ",";
+  explain += current_thd->statement_digest_text + ",";
+  helper += "int_x";
+  explain += "int_x";
+  for (const string &token : tokens_for_force_subplan) {
+    explain += ",";
+    explain += token;
+    helper += "," + token;
+  }
+  FileWriter::explain_log_helper(helper);
+  explain += "';\n";
 
   return explain;
 }

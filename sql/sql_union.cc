@@ -983,8 +983,6 @@ bool Query_expression::optimize(THD *thd, TABLE *materialize_destination,
                                 bool finalize_access_paths) {
   DBUG_TRACE;
 
-  printf("I am optimizing plan %d \n", thd->current_plan);
-
   if (!finalize_access_paths) {
     assert(!create_iterators);
   }
@@ -1160,17 +1158,11 @@ bool Query_expression::optimize(THD *thd, TABLE *materialize_destination,
   }
 
 
-  printf("optimize done \n");
   if(thd->pin && thd->best_pinned_plan_found){
       thd->pin = false;
       thd->best_pinned_plan_found = false;
       thd->number_of_plans = 1;
-      printf("I leave the pin loop in optimize() \n");
-    
   }
-
-  printf("pin status after optimize: %d \n", thd->pin);
-  printf("current plan to optimize is: %d \n", thd->current_plan);
   return false;
 }
 

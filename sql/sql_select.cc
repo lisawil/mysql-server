@@ -762,9 +762,9 @@ bool optimize_secondary_engine(THD *thd) {
 
 bool Sql_cmd_dml::execute_inner(THD *thd) {
   Query_expression *unit = lex->unit;
-  printf("pin status before optimize loop %d \n", thd->pin);
+  std::chrono::steady_clock::time_point optimize_time_start = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point sum_time_start = std::chrono::steady_clock::now();
 
-   //FileWriter::write_to_debug(thd->m_token_array);
 
   for (int j = 0; j<thd->number_of_plans + thd->pin; j++){
 
@@ -784,7 +784,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
       if(thd->current_plan > thd->number_of_plans){
         
         // find plan with best cost
-        int index_of_cheapest_plan;
+        int index_of_cheapest_plan = 0;
         double min_cost = 999999999.999;
 
         for(int i = 0; i<thd->number_of_plans; i++){
@@ -799,7 +799,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
         //printf("best pinned plan found! \n");
       }
       if(thd->best_pinned_plan_found && thd->current_plan == thd->number_of_plans){
-        printf("best plan is most recent plan and still usable \n");
+
         thd->pin = false;
         thd->best_pinned_plan_found = false;
         thd->number_of_plans = 1;
@@ -816,7 +816,6 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
             sl->join = nullptr;
           }
         }
-        printf("will retry optimize %d \n", thd->current_plan);
       }
     }
   }
@@ -824,14 +823,26 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
   // Perform secondary engine optimizations, if needed.
   if (optimize_secondary_engine(thd)) return true;
 
+  printf("passed optimize_secondary_engine() \n");
+
+  std::chrono::steady_clock::time_point optimize_time_end = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point execute_time_start = std::chrono::steady_clock::now();;
+  printf("right before execute \n");
   // We know by now that execution will complete (successful or with error)
   lex->set_exec_completed();
   if (lex->is_explain()) {
     if (explain_query(thd, thd, unit)) return true; /* purecov: inspected */
   } else {
-    printf("trying to execute \n");
     if (unit->execute(thd)) return true;
   }
+
+  std::chrono::steady_clock::time_point sum_time_end = std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point execute_time_end = std::chrono::steady_clock::now();;
+
+  FileWriter::write_to_log(std::chrono::duration_cast<std::chrono::duration<double>>(optimize_time_end - optimize_time_start), 
+    std::chrono::duration_cast<std::chrono::duration<double>>(execute_time_end - execute_time_start), 
+    std::chrono::duration_cast<std::chrono::duration<double>>(sum_time_end - sum_time_start), thd);
+  
   return false;
 }
 
@@ -1735,6 +1746,7 @@ void JOIN::destroy() {
   set_plan_state(NO_PLAN);
 
   if (qep_tab) {
+    printf("qep_tab cleanup \n");
     assert(!join_tab);
     for (uint i = 0; i < tables; i++) {
       TABLE *table = qep_tab[i].table();
@@ -1748,6 +1760,7 @@ void JOIN::destroy() {
       qep_tab[i].cleanup();
     }
   } else if (thd->lex->using_hypergraph_optimizer) {
+    printf("hypergraph cleanup \n");
     // Same, for hypergraph queries.
     for (Table_ref *tl = query_block->leaf_tables; tl; tl = tl->next_leaf) {
       TABLE *table = tl->table;

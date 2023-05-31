@@ -152,7 +152,10 @@ class PT_qb_level_hint : public PT_hint {
       : PT_hint(hint_type_arg, switch_state_arg),
         qb_name(qb_name_arg),
         args(0),
-        table_list(table_list_arg) {}
+        table_list(table_list_arg) {
+          current_thd->pin = true;
+          current_thd->number_of_plans = 1;
+        }
   PT_qb_level_hint(const LEX_CSTRING qb_name_arg, bool switch_state_arg,
                    enum opt_hints_enum hint_type_arg,
                    const Hint_param_table_list &table_list_arg,
@@ -241,19 +244,19 @@ class PT_qb_level_hint : public PT_hint {
   virtual Hint_param_table_list *get_table_list() { 
     int curr_plan = current_thd->current_plan; 
     if(curr_plan == 1 || active_hints_num<2){
-      printf("using hint table list 1 \n");
+      //printf("using hint table list 1 \n");
       return &table_list;
     }else if(curr_plan == 2 ||  active_hints_num<3){
-      printf("using hint table list 2 \n");
+      //printf("using hint table list 2 \n");
       return &table_list2;
     }else if(curr_plan == 3 ||  active_hints_num<4){
-      printf("using hint table list 3 \n");
+      //printf("using hint table list 3 \n");
       return &table_list3;
     }else if(curr_plan == 4 ||  active_hints_num<5){
-      printf("using hint table list 4 \n");
+      //printf("using hint table list 4 \n");
       return &table_list4;
     }else if(curr_plan == 5 ||  active_hints_num<6){ //as of now active_hints cannot exceed 5
-      printf("using hint table list 5 \n");
+      //printf("using hint table list 5 \n");
       return &table_list5;
     }
     return &table_list;

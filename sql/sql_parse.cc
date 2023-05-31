@@ -5203,8 +5203,6 @@ void dispatch_sql_command(THD *thd, Parser_state *parser_state) {
 
   DBUG_EXECUTE_IF("parser_debug", turn_parser_debug_on(););
 
-  printf("I am in dispatch_sql_command() \n");
-
   mysql_reset_thd_for_next_command(thd);
   // It is possible that rewritten query may not be empty (in case of
   // multiqueries). So reset it.

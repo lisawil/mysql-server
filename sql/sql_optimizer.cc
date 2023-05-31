@@ -678,7 +678,6 @@ bool JOIN::optimize(bool finalize_access_paths) {
     }
     set_plan_state(PLAN_READY);
     DEBUG_SYNC(thd, "after_join_optimize");
-    printf("hypergraph optimize success! \n");
     return false;
   }
 

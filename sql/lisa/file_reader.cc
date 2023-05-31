@@ -14,7 +14,7 @@
 
 void FileReader::ReadPinContextFromFile(){
 
-    std::string fileName = "pinned_hashes.csv";
+    std::string fileName = "hashes.csv";
     // Open input file
     std::ifstream file(fileName);
 
@@ -27,7 +27,7 @@ void FileReader::ReadPinContextFromFile(){
     }
     else {
 
-        std::unordered_map<std::string, int> temp;
+        std::unordered_map<std::string, std::unordered_map<std::string, int>> temp;
         // File could be opened. Now we want to read line by line
         std::string line{};
 
@@ -40,26 +40,7 @@ void FileReader::ReadPinContextFromFile(){
            
                     //pinned = true;
                     for(unsigned int i = 2; i < part.size(); i++){
-                        temp[std::string(part[0])+std::string(part[i])] = std::stoi(part[1]);  
-
-
-                    /*
-                    if (sub_plan_token == part[i])
-                        {
-                            path->pinned.pinned = true;
-                            path->pinned.pin_number = std::stoi(part[1]);
-                            path->pinned.final_plan = (i+1 == part.size());
-
-                            printf("subplan is hypergraph pinned! \n");
-                            file.close();
-                            assert(!file.fail());
-                            return;
-                        }
-                    }
-                
-                    */
-                    
-        
+                        temp[std::string(part[0])][std::string(part[i])] = std::stoi(part[1]); 
                     }
         }
         using std::swap;

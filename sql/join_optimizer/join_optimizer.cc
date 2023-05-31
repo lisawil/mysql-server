@@ -211,23 +211,6 @@ class CostingReceiver {
   CostingReceiver &operator=(CostingReceiver &&) = default;
   CostingReceiver(const CostingReceiver &) = delete;
   CostingReceiver(CostingReceiver &&) = default;
-  /*
-  ~CostingReceiver(){
-    deleteHelper(&m_hint_tree);
-  }
-
-
-  void deleteHelper(JoinOrderHintTreeNode *node){
-    if(AreMultipleBitsSet(node->bit_map_of_join)){
-      deleteHelper(node->left);
-      deleteHelper(node->right);
-    if(node != &m_hint_tree){
-       delete node;
-    }
-  }
-  }
-
-  */
   bool HasSeen(NodeMap subgraph) const {
     return m_access_paths.count(subgraph) != 0;
   }
@@ -4234,12 +4217,25 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
     }
   }
 
+  if(a.pinned && b.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
+    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
+  }
+  else if(a.pinned){
+    return PathComparisonResult::FIRST_DOMINATES;
+  }
+  else if(b.pinned){
+    return PathComparisonResult::SECOND_DOMINATES;
+  }
+
+  /*
   if(a.pinned){
     flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
   }
   if(b.pinned){
     flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
   }
+  */
 
   if(a.hinted && b.hinted){
   }else if(a.hinted){
@@ -4654,13 +4650,14 @@ AccessPath *CostingReceiver::ProposeAccessPath(
     DBUG_EXECUTE_IF(token.c_str(), path->forced_by_dbug = true;);
   });
 
-  std::unordered_map<std::string, int>::const_iterator it = current_thd->subplan_token_map.find(current_thd->statement_digest_text+GetForceSubplanToken(path, m_query_block->join));
-  if(it != current_thd->subplan_token_map.end() && it->second){
-    path->pinned = true;
-    current_thd->hash_pinned = true;
-    //printf("I am hash_pinned! So path is now pinned! \n");
+
+  if( current_thd->hash_pinned == true){
+    std::unordered_map<std::string, int>::const_iterator it = current_thd->current_statement_token_map.find(GetForceSubplanToken(path, m_query_block->join));
+    if(it != current_thd->current_statement_token_map.end() && it->second){
+      path->pinned = true;
+    }
   }
-  
+
   if (existing_paths->empty()) {
     if (m_trace != nullptr) {
       *m_trace += " - " +
@@ -6489,7 +6486,17 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     join->refresh_base_slice();
   }
 
+  //create the join order tree
   JoinOrderHintTreeNode join_order_tree;
+
+  // check if query is hash_pinned
+  if (thd->subplan_token_map.find(thd->statement_digest_text) != thd->subplan_token_map.end())
+  {
+    thd->current_statement_token_map = thd->subplan_token_map.at(thd->statement_digest_text);
+    thd->hash_pinned = true;
+  }
+  
+  
 
   // NOTE: Normally, we'd expect join->temp_tables and
   // join->filesorts_to_cleanup to be empty, but since we can get called twice
@@ -7055,16 +7062,11 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                           return a->cost < b->cost;
                         });
             
-    if (&candidate_root_path != root_candidates.end()){
+    if (&candidate_root_path != root_candidates.end() && candidate_root_path->pinned){
       if(root_path->cost<candidate_root_path->cost){
         printf("There is a non-pinned plan with better cost than the pinned one \n");
-      }else{
-
-        printf("There is no non-pinned plan with better cost than the pinned one! \n");
       }
-      printf("hash_pinned plan sent to execute \n");
       root_path = candidate_root_path;
-
 
     }else{
       printf("no pinned plan could be found! \n");
@@ -7083,8 +7085,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                           return a->cost < b->cost;
                         });
              
-    if (&candidate_root_path != root_candidates.end()){
-      printf("hinted plan sent to execute \n");
+    if (&candidate_root_path != root_candidates.end() && candidate_root_path->hinted){
       root_path = candidate_root_path;
     }else{
       printf("no hinted plan could be found! \n");

@@ -3368,6 +3368,7 @@ static bool check_optimizer_switch(sys_var *, THD *thd [[maybe_unused]],
       thd->optimizer_switch_flag(OPTIMIZER_SWITCH_HYPERGRAPH_OPTIMIZER);
   const bool want_hypergraph_optimizer =
       var->save_result.ulonglong_value & OPTIMIZER_SWITCH_HYPERGRAPH_OPTIMIZER;
+  //printf("curr_hyp_opt: %d, wnat_hyp_opt: %d \n", current_hypergraph_optimizer, want_hypergraph_optimizer);
 
   if (current_hypergraph_optimizer && !want_hypergraph_optimizer) {
     // Don't turn off the hypergraph optimizer on set optimizer_switch=DEFAULT.

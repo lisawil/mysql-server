@@ -2421,7 +2421,7 @@ JoinOrderHintTreeNode* ConstructJoinOrderTree(vector<string> join_order_strings,
       left = false;
     }else if(!strcmp(join_order_strings[i].c_str(), "rp_")){
       continue;
-    }else if(stoull(join_order_strings[i])<MAX_TABLES){//better test? is it readily available?
+    }else if(stoull(join_order_strings[i])<4294967295){//better test? is it readily available?
       // set table
       (left ? leftChild: rightChild).bit_map_of_join = stoull(join_order_strings[i]);
       if(!left){
@@ -3622,18 +3622,14 @@ vector<string> join_order_hints;
         query_block->opt_hints_qb->get_join_order_hints_for_hypergraph(join_order_hints);
         
       }
-      printf("hypergraph hint list has entered the hypergraph %s \n", join_order_hints.at(0).c_str());
+      
   }
 
   MakeJoinGraphFromRelationalExpression(thd, root, trace, graph, join_order_hints);
 
-  for(u_int i = 0; i<join_order_hints.size(); i++){
-    printf("hints: %s \n", join_order_hints[i].c_str());
-  }
-
   if(thd->pin){
     join_order_hint_tree_root = *ConstructJoinOrderTree(join_order_hints, 0, join_order_hints.size());
-    printTreeTraversal(join_order_hint_tree_root);
+    //printTreeTraversal(join_order_hint_tree_root);
   }
 
   // Now that we have the hypergraph construction done, it no longer hurts

@@ -536,7 +536,7 @@ void Opt_hints_qb::get_join_order_hints_for_hypergraph(std::vector<std::string>&
     hint_table < hint_table_list->end(); hint_table++) {
       
         hyp_join_order_hints.push_back(hint_table->table.str);
-        printf("added hint table to hypergraph join order hint! \n");  
+        //printf("added hint table to hypergraph join order hint! \n");  
     }
   }
 }
