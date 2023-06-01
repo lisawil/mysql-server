@@ -4652,9 +4652,12 @@ AccessPath *CostingReceiver::ProposeAccessPath(
 
 
   if( current_thd->hash_pinned == true){
-    std::unordered_map<std::string, int>::const_iterator it = current_thd->current_statement_token_map.find(GetForceSubplanToken(path, m_query_block->join));
-    if(it != current_thd->current_statement_token_map.end() && it->second){
+    std::unordered_map<std::string, int>::const_iterator it = current_thd->current_statement_token_map->find(GetForceSubplanToken(path, m_query_block->join));
+      //printf("it != current_thd->current_statement_token_map.end(): %d\n", it != current_thd->current_statement_token_map.end());
+      
+    if(it != current_thd->current_statement_token_map->end() && it->second>0){
       path->pinned = true;
+       printf("it->second: %d \n", it->second);
     }
   }
 
@@ -7057,15 +7060,19 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
         --i;
       }
     }
+    printf("number of hinted plans left: %ld \n", root_candidates.size() );
     AccessPath *candidate_root_path = *std::min_element(root_candidates.begin(), root_candidates.end(),
                         [](const AccessPath *a, const AccessPath *b) {
                           return a->cost < b->cost;
                         });
             
     if (&candidate_root_path != root_candidates.end() && candidate_root_path->pinned){
+      printf("found %ld pinned plans! bound for execute! \n", root_candidates.size());
+      
       if(root_path->cost<candidate_root_path->cost){
         printf("There is a non-pinned plan with better cost than the pinned one \n");
       }
+
       root_path = candidate_root_path;
 
     }else{

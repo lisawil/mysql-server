@@ -1221,7 +1221,7 @@ static_assert(std::is_trivially_destructible<AccessPath>::value,
               "on the MEM_ROOT and not wrapped in unique_ptr_destroy_only"
               "(because multiple candidates during planning could point to "
               "the same access paths, and refcounting would be expensive)");
-static_assert(sizeof(AccessPath) <= 160, //TODO Lisa find exact
+static_assert(sizeof(AccessPath) <= 146, //TODO Lisa find exact
               "We are creating a lot of access paths in the join "
               "optimizer, so be sure not to bloat it without noticing. "
               "(96 bytes for the base, 48 bytes for the variant.)");

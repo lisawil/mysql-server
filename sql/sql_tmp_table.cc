@@ -369,9 +369,11 @@ Field *create_tmp_field(THD *thd, TABLE *table, Item *item, Item::Type type,
   // If we are optimizing twice (due to being in the hypergraph optimizer
   // and consider materialized subqueries), we might have Item_cache nodes
   // that we need to ignore.
+  if (!thd->lex->using_hypergraph_optimizer && !thd->pin){
   if (type == Item::CACHE_ITEM) {
     item = down_cast<Item_cache *>(item)->get_example();
     type = item->type();
+  }
   }
 
   if (type != Item::FIELD_ITEM &&
@@ -925,6 +927,7 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
   }
 
   TABLE_SHARE *share = new (&own_root) TABLE_SHARE;
+  printf("new own_root initialize \n");
   TABLE *table = new (&own_root) TABLE;
   if (table == nullptr || share == nullptr) return nullptr;
 
@@ -1074,6 +1077,10 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
         assert(!distinct);
         Item *arg = sum_item->get_arg(i);
         if (!arg->const_item()) {
+          //assert(table->s->default_values!=nullptr);
+          printf("sql_tmp_table.cc :: 1077 \n");
+          //printf("table okay ? %u \n", table->s->default_values);
+          //printf("table okay? %u \n",  table->record[0]); //maybe?
           Field *new_field = create_tmp_field(
               thd, table, arg, arg->type(), param->items_to_copy,
               &from_field[fieldnr], &default_field[fieldnr], /*group=*/false,
@@ -1935,6 +1942,7 @@ TABLE *create_tmp_table_from_fields(THD *thd, List<Create_field> &field_list,
   new (share) TABLE_SHARE;
   table->init_tmp_table(thd, share, m_root, nullptr, alias, reg_field,
                         blob_field, is_virtual);
+  printf("table->s->keys: %d \n", table->s->keys);
 
   /* Create all fields and calculate the total length of record */
   List_iterator_fast<Create_field> it(field_list);
@@ -2472,7 +2480,7 @@ void close_tmp_table(TABLE *table) {
 void free_tmp_table(TABLE *table) {
   DBUG_TRACE;
   DBUG_PRINT("enter", ("table: %s", table->alias));
-
+  printf("free_tmp_table \n");
   TABLE_SHARE *const share = table->s;
 
   assert(!table->is_created() && !table->has_storage_handler() &&
@@ -2492,6 +2500,7 @@ void free_tmp_table(TABLE *table) {
   */
   if (share->decrement_ref_count() == 0)  // no more TABLE objects
   {
+    printf("buy buy own_root! \n");
     MEM_ROOT own_root = std::move(share->mem_root);
     destroy(table);
     own_root.Clear();

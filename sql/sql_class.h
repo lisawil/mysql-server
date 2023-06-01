@@ -942,8 +942,8 @@ std::string statement_digest_text;
 
 //std::unordered_map<unsigned char* digest, std::unordered_map<std::string, int>> hash_map = nullptr;
 //std::unordered_map<std::string, int> curr_query_subplan_token_map = nullptr;
-std::unordered_map<std::string, std::unordered_map<std::string, int>> subplan_token_map;
-std::unordered_map<std::string, int> current_statement_token_map;
+std::unordered_map<std::string, std::unordered_map<std::string, int>*> subplan_token_map;
+std::unordered_map<std::string, int>* current_statement_token_map;
 
  public:
   /**

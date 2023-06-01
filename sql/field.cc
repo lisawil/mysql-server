@@ -2139,7 +2139,8 @@ bool Field::optimize_range(uint idx, uint part) const {
 Field *Field::new_field(MEM_ROOT *root, TABLE *new_table) const {
   Field *tmp = clone(root);
   if (tmp == nullptr) return nullptr;
-
+  // lisa here is deat
+  //printf("tmp->table != null: %d \n ",tmp->table !=nullptr);
   if (tmp->table && tmp->table->is_nullable()) tmp->clear_flag(NOT_NULL_FLAG);
   tmp->table = new_table;
   tmp->key_start.init(0);

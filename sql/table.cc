@@ -464,11 +464,14 @@ void init_tmp_table_share(THD *thd, TABLE_SHARE *share, const char *key,
 
   new (share) TABLE_SHARE();
 
-  if (mem_root)
+  if (mem_root){
+  printf("mem_root \n");
     share->mem_root = std::move(*mem_root);
-  else
+    }
+  else{
+   printf("not mem_root \n");
     init_sql_alloc(key_memory_table_share, &share->mem_root,
-                   TABLE_ALLOC_BLOCK_SIZE);
+                   TABLE_ALLOC_BLOCK_SIZE);}
 
   share->table_category = TABLE_CATEGORY_TEMPORARY;
   share->tmp_table = INTERNAL_TMP_TABLE;
@@ -4189,6 +4192,7 @@ bool TABLE::init_tmp_table(THD *thd, TABLE_SHARE *share, MEM_ROOT *m_root,
                            CHARSET_INFO *charset, const char *alias_arg,
                            Field **fld, uint *blob_fld, bool is_virtual) {
   if (!is_virtual) {
+    printf("not virtual \n");
     char *name, path[FN_REFLEN];
     assert(sizeof(my_thread_id) == 4);
     sprintf(path, "%s%lx_%x_%x", tmp_file_prefix, current_pid, thd->thread_id(),
@@ -4200,6 +4204,7 @@ bool TABLE::init_tmp_table(THD *thd, TABLE_SHARE *share, MEM_ROOT *m_root,
 
     init_tmp_table_share(thd, share, "", 0, name, name, m_root);
   } else {
+    printf("virtual \n");
     LEX_CSTRING empty_name = {STRING_WITH_LEN("")};
     share->db = empty_name;
     share->table_name = empty_name;

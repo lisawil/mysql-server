@@ -526,6 +526,7 @@ static void DelayedCreateTemporaryTable(THD *thd, Query_block *query_block,
     *last_window_temp_table = nullptr;
   } else if (path->type == AccessPath::STREAM) {
     if (path->stream().table == nullptr) {
+      assert(query_block->join->fields->size());
       path->stream().table = CreateTemporaryTableFromSelectList(
           thd, query_block, nullptr, &path->stream().temp_table_param,
           after_aggregation);

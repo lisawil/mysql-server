@@ -2271,6 +2271,7 @@ void Query_expression::exclude_level() {
   query blocks and query expressions from AST.
 */
 void Query_expression::exclude_tree() {
+  //viktig
   for (Query_block *sl = first_query_block(); sl != nullptr;
        sl = sl->next_query_block()) {
     /*

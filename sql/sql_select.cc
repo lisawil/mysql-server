@@ -767,11 +767,12 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
 
 
   for (int j = 0; j<thd->number_of_plans + thd->pin; j++){
+    printf("before optimize, but in the loop \n");
 
     if (unit->optimize(thd, /*materialize_destination=*/nullptr,
                      /*create_iterators=*/true, /*finalize_access_paths=*/true))
     return true;
-
+    printf("after optimize, but in the loop \n");
     // Calculate the current statement cost.
     accumulate_statement_cost(lex);
 
@@ -800,10 +801,12 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
       }
       if(thd->best_pinned_plan_found && thd->current_plan == thd->number_of_plans){
 
+        //printf("best plan is most recent plan and still usable \n");
         thd->pin = false;
         thd->best_pinned_plan_found = false;
         thd->number_of_plans = 1;
       }else{
+        printf("hello from lis.cleanup \n");
         /*
         * cleanup for re-optimize
         */
@@ -816,8 +819,12 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
             sl->join = nullptr;
           }
         }
+        //cleanup_items(thd->item_list());
+        thd->rollback_item_tree_changes();
+        //bind_fields(thd->item_list());
       }
     }
+    printf("end of optimize loop \n");
   }
 
   // Perform secondary engine optimizations, if needed.
@@ -1746,7 +1753,6 @@ void JOIN::destroy() {
   set_plan_state(NO_PLAN);
 
   if (qep_tab) {
-    printf("qep_tab cleanup \n");
     assert(!join_tab);
     for (uint i = 0; i < tables; i++) {
       TABLE *table = qep_tab[i].table();
@@ -1760,7 +1766,6 @@ void JOIN::destroy() {
       qep_tab[i].cleanup();
     }
   } else if (thd->lex->using_hypergraph_optimizer) {
-    printf("hypergraph cleanup \n");
     // Same, for hypergraph queries.
     for (Table_ref *tl = query_block->leaf_tables; tl; tl = tl->next_leaf) {
       TABLE *table = tl->table;
@@ -1792,6 +1797,7 @@ void JOIN::destroy() {
     }
     for (Filesort *filesort : filesorts_to_cleanup) {
       ::destroy(filesort);
+      filesort = nullptr;
     }
     temp_tables.clear();
     filesorts_to_cleanup.clear();
@@ -1876,6 +1882,8 @@ bool Query_block::optimize(THD *thd, bool finalize_access_paths) {
   thd->lock_query_plan();
   join = join_local;
   thd->unlock_query_plan();
+
+  printf("right before join->optimize() \n");
 
   if (join->optimize(finalize_access_paths)) return true;
 

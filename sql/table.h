@@ -1936,8 +1936,8 @@ struct TABLE {
   bool check_read_removal(uint index);
 
   ptrdiff_t default_values_offset() const {
-    printf("do we have default values? %s \n", s->default_values);
     printf("do we have record? %s \n", record[0]);
+    printf("do we have default values? %s \n", s->default_values);
     return (ptrdiff_t)(s->default_values - record[0]);
   }
 
