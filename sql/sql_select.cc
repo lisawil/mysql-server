@@ -820,7 +820,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
           }
         }
         //cleanup_items(thd->item_list());
-        thd->rollback_item_tree_changes();
+        //thd->rollback_item_tree_changes();
         //bind_fields(thd->item_list());
       }
     }

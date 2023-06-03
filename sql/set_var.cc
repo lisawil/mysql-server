@@ -1425,7 +1425,7 @@ int sql_set_variables(THD *thd, List<set_var_base> *var_list, bool opened) {
     //TODO Lisa?
       if (thd->lex->using_hypergraph_optimizer)
       {
-        //FileReader::ReadPinContextFromFile();
+        FileReader::ReadPinContextFromFile();
       }
       
     Prepared_stmt_arena_holder ps_arena_holder(thd);

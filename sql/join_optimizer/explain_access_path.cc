@@ -1820,9 +1820,9 @@ static void RemoveParameters(string &json_for_digest){
     int pos_of_equals = json_for_digest.find("=", min_search_pos) == std::string::npos ? 10000000 : json_for_digest.find("=", min_search_pos);
     int pos_of_greater = json_for_digest.find(">", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find(">", min_search_pos);
     int pos_of_lesser = json_for_digest.find("<", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find("<", min_search_pos);
-
+    int pos_of_like = json_for_digest.find("like", min_search_pos) == std::string::npos ? 10000000 : json_for_digest.find("like", min_search_pos);
     pos_of_comparator = std::min(pos_of_equals, std::min(pos_of_greater, pos_of_lesser));
-
+    pos_of_comparator = std::min(pos_of_equals, std::min(pos_of_greater, std::min(pos_of_lesser, pos_of_like)));
 
     if(pos_of_comparator<10000000){
         int pos_of_parenthesis = json_for_digest.find(")", pos_of_comparator);

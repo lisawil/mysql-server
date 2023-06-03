@@ -664,7 +664,7 @@ template <class Receiver>
 // If at any point receiver->FoundSingleNode() or receiver->FoundSubgraphPair()
 // returns true, the algorithm will abort, and this function also return true.
 template <class Receiver>
-bool EnumerateAllConnectedPartitions(const Hypergraph &g, Receiver *receiver) {
+bool EnumerateAllConnectedPartitions(const Hypergraph &g, Receiver *receiver) { //TODO LISA read here
   for (int seed_idx = g.nodes.size() - 1; seed_idx >= 0; --seed_idx) {
     if (receiver->FoundSingleNode(seed_idx)) {
       return true;

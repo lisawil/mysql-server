@@ -4171,6 +4171,32 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
 
   uint32_t flags = 0;
 
+  /*
+  if(a.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
+  }
+  if(b.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
+  }
+  */
+
+  if(a.pinned && b.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
+    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
+    printf("both candidates pinned \n");
+    return PathComparisonResult::DIFFERENT_STRENGTHS;
+  }else if(a.pinned){
+    return PathComparisonResult::FIRST_DOMINATES;
+    printf("a pinned \n");
+    //flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
+
+  }else if(b.pinned){
+    printf("b pinned \n");
+    return PathComparisonResult::SECOND_DOMINATES;
+  }else{
+    //printf("not pinned \n");
+  }
+
   if (a.parameter_tables != b.parameter_tables) {
     if (!IsSubset(a.parameter_tables, b.parameter_tables)) {
       flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
@@ -4216,26 +4242,6 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
       flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
     }
   }
-
-  if(a.pinned && b.pinned){
-    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
-    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
-  }
-  else if(a.pinned){
-    return PathComparisonResult::FIRST_DOMINATES;
-  }
-  else if(b.pinned){
-    return PathComparisonResult::SECOND_DOMINATES;
-  }
-
-  /*
-  if(a.pinned){
-    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
-  }
-  if(b.pinned){
-    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
-  }
-  */
 
   if(a.hinted && b.hinted){
   }else if(a.hinted){
@@ -6436,6 +6442,16 @@ static void CacheCostInfoForJoinConditions(THD *thd,
   }
 }
 
+void GetHashPinTextForCsv(AccessPath* root_path, JOIN* join, string* for_csv){
+
+auto func = [for_csv](AccessPath *subpath, JOIN * join_ptr) {
+    
+    *for_csv += GetForceSubplanToken(subpath, join_ptr) + ",";
+    return true;
+};
+  *for_csv = current_thd->statement_digest_text + std::string(",5,");
+  WalkAccessPaths(root_path, join, WalkAccessPathPolicy::ENTIRE_TREE, func, true);
+}
 /**
   Find the lowest-cost plan (which hopefully is also the cheapest to execute)
   of all the legal ways to execute the query. The overall order of operations is
@@ -6904,6 +6920,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
             CreateStreamingAggregationPath(thd, sort_path, join, rollup, trace);
         receiver.ProposeAccessPath(&aggregate_path, &new_root_candidates,
                                    /*obsolete_orderings=*/0, description);
+        printf("aggregate path at 6977 pinned? : %d \n", aggregate_path.pinned);
       }
     }
     root_candidates = std::move(new_root_candidates);
@@ -7051,6 +7068,13 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                         [](const AccessPath *a, const AccessPath *b) {
                           return a->cost < b->cost;
                         });
+
+
+  std::string for_csv = "";
+  GetHashPinTextForCsv(root_path, join, &for_csv);
+  printf("%s", for_csv.c_str());
+
+
   //remove non-pinned alternatives from the list
   if(thd->hash_pinned){
     for (size_t i = 0; i < root_candidates.size(); ++i) {
@@ -7093,6 +7117,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                         });
              
     if (&candidate_root_path != root_candidates.end() && candidate_root_path->hinted){
+      printf("hinted plan found\n");
       root_path = candidate_root_path;
     }else{
       printf("no hinted plan could be found! \n");

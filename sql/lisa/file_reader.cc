@@ -37,17 +37,12 @@ void FileReader::ReadPinContextFromFile(){
              std::unordered_map<std::string, int>* temp_inner= new std::unordered_map<std::string, int>;
             // Split string into parts
             std::vector part(std::sregex_token_iterator(line.begin(), line.end(), separator, -1), {});
-                    //pinned = true;
                 for(unsigned int i = 2; i < part.size(); i++){
                     temp_inner->insert(std::make_pair<std::string,int>(std::string(part[i]),std::stoi(part[1])));
-                    
-                    //temp[std::string(part[0])][std::string(part[i])] = std::stoi(part[1]); //probably more correct to put new it in here
                 }
                 if (temp.find(std::string(part[0])) != temp.end())
-                {   //ump.insert(it, { 'c', 3 });
-                    //temp.at(std::string(part[0]))->insert(temp.find(std::string(part[0]), temp_inner));
+                {
                     temp.at(std::string(part[0]))->insert(temp_inner->begin(), temp_inner->end());
-                    //temp.at(std::string(part[0]))->merge(&temp_inner);
                 }else{
                     temp.insert(std::make_pair<std::string,std::unordered_map<std::string, int>*>(std::string(part[0]), std::move(temp_inner)));
                 }
