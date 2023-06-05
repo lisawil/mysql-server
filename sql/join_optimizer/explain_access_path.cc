@@ -1895,19 +1895,6 @@ string Explain_format_tree::ExplainJsonToString(Json_object *json) {
     explain += "';\n";
   });
  
-  string helper = "";
-  explain += "\nTo hash_pin this plan, use:\n this in file: ";
-  helper += current_thd->statement_digest_text + ",";
-  explain += current_thd->statement_digest_text + ",";
-  helper += "int_x";
-  explain += "int_x";
-  for (const string &token : tokens_for_force_subplan) {
-    explain += ",";
-    explain += token;
-    helper += "," + token;
-  }
-  FileWriter::explain_log_helper(helper);
-  explain += "';\n";
 
   return explain;
 }

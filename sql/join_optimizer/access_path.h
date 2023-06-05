@@ -1235,6 +1235,7 @@ inline void CopyBasicProperties(const AccessPath &from, AccessPath *to) {
   to->safe_for_rowid = from.safe_for_rowid;
   to->ordering_state = from.ordering_state;
   to->hinted = from.hinted;
+  to->pinned = from.pinned;
 }
 
 // Trivial factory functions for all of the types of access paths above.
@@ -1434,6 +1435,7 @@ inline AccessPath *NewAggregateAccessPath(THD *thd, AccessPath *child,
   path->type = AccessPath::AGGREGATE;
   path->aggregate().child = child;
   path->aggregate().rollup = rollup;
+  path->pinned = child->pinned;
   return path;
 }
 
@@ -1527,6 +1529,7 @@ inline AccessPath *NewStreamingAccessPath(THD *thd, AccessPath *child,
   // Will be set later if we get a weedout access path as parent.
   path->stream().provide_rowid = false;
   path->hinted = child->hinted;
+  path->pinned = child->pinned;
   return path;
 }
 

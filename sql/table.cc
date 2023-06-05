@@ -465,7 +465,7 @@ void init_tmp_table_share(THD *thd, TABLE_SHARE *share, const char *key,
   new (share) TABLE_SHARE();
 
   if (mem_root){
-  printf("mem_root \n");
+  //printf("mem_root \n");
     share->mem_root = std::move(*mem_root);
     }
   else{
@@ -4192,7 +4192,7 @@ bool TABLE::init_tmp_table(THD *thd, TABLE_SHARE *share, MEM_ROOT *m_root,
                            CHARSET_INFO *charset, const char *alias_arg,
                            Field **fld, uint *blob_fld, bool is_virtual) {
   if (!is_virtual) {
-    printf("not virtual \n");
+    //printf("not virtual \n");
     char *name, path[FN_REFLEN];
     assert(sizeof(my_thread_id) == 4);
     sprintf(path, "%s%lx_%x_%x", tmp_file_prefix, current_pid, thd->thread_id(),

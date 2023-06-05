@@ -142,6 +142,7 @@ string RefToString(const Index_lookup &ref, const KEY *key,
       ret += ItemToString(ref.items[key_part_idx]);
     }
     ret += ")";
+    printf("early return RefToString: %s\n", ret.c_str());
     return ret;
   }
 
@@ -171,6 +172,7 @@ string RefToString(const Index_lookup &ref, const KEY *key,
     }
     key_buff += key->key_part[key_part_idx].store_length;
   }
+  //printf("RefToString: %s\n", ret.c_str());
   return ret;
 }
 

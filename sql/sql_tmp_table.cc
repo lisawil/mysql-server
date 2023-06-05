@@ -927,7 +927,7 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
   }
 
   TABLE_SHARE *share = new (&own_root) TABLE_SHARE;
-  printf("new own_root initialize \n");
+  //printf("new own_root initialize \n");
   TABLE *table = new (&own_root) TABLE;
   if (table == nullptr || share == nullptr) return nullptr;
 
@@ -1077,10 +1077,6 @@ TABLE *create_tmp_table(THD *thd, Temp_table_param *param,
         assert(!distinct);
         Item *arg = sum_item->get_arg(i);
         if (!arg->const_item()) {
-          //assert(table->s->default_values!=nullptr);
-          printf("sql_tmp_table.cc :: 1077 \n");
-          //printf("table okay ? %u \n", table->s->default_values);
-          //printf("table okay? %u \n",  table->record[0]); //maybe?
           Field *new_field = create_tmp_field(
               thd, table, arg, arg->type(), param->items_to_copy,
               &from_field[fieldnr], &default_field[fieldnr], /*group=*/false,

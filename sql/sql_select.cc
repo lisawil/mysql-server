@@ -767,12 +767,12 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
 
 
   for (int j = 0; j<thd->number_of_plans + thd->pin; j++){
-    printf("before optimize, but in the loop \n");
+    //printf("before optimize, but in the loop \n");
 
     if (unit->optimize(thd, /*materialize_destination=*/nullptr,
                      /*create_iterators=*/true, /*finalize_access_paths=*/true))
     return true;
-    printf("after optimize, but in the loop \n");
+    //printf("after optimize, but in the loop \n");
     // Calculate the current statement cost.
     accumulate_statement_cost(lex);
 
@@ -806,7 +806,7 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
         thd->best_pinned_plan_found = false;
         thd->number_of_plans = 1;
       }else{
-        printf("hello from lis.cleanup \n");
+        //printf("hello from lis.cleanup \n");
         /*
         * cleanup for re-optimize
         */
@@ -819,22 +819,22 @@ bool Sql_cmd_dml::execute_inner(THD *thd) {
             sl->join = nullptr;
           }
         }
-        //cleanup_items(thd->item_list());
-        //thd->rollback_item_tree_changes();
-        //bind_fields(thd->item_list());
+        cleanup_items(thd->item_list());
+        thd->rollback_item_tree_changes();
+        bind_fields(thd->item_list());
       }
     }
-    printf("end of optimize loop \n");
+    //printf("end of optimize loop \n");
   }
 
   // Perform secondary engine optimizations, if needed.
   if (optimize_secondary_engine(thd)) return true;
 
-  printf("passed optimize_secondary_engine() \n");
+  //printf("passed optimize_secondary_engine() \n");
 
   std::chrono::steady_clock::time_point optimize_time_end = std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point execute_time_start = std::chrono::steady_clock::now();;
-  printf("right before execute \n");
+  //printf("right before execute \n");
   // We know by now that execution will complete (successful or with error)
   lex->set_exec_completed();
   if (lex->is_explain()) {

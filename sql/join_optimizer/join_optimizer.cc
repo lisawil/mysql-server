@@ -4183,18 +4183,13 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
   if(a.pinned && b.pinned){
     flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
     flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
-    printf("both candidates pinned \n");
     return PathComparisonResult::DIFFERENT_STRENGTHS;
   }else if(a.pinned){
     return PathComparisonResult::FIRST_DOMINATES;
-    printf("a pinned \n");
     //flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
 
   }else if(b.pinned){
-    printf("b pinned \n");
     return PathComparisonResult::SECOND_DOMINATES;
-  }else{
-    //printf("not pinned \n");
   }
 
   if (a.parameter_tables != b.parameter_tables) {
@@ -4664,6 +4659,9 @@ AccessPath *CostingReceiver::ProposeAccessPath(
     if(it != current_thd->current_statement_token_map->end() && it->second>0){
       path->pinned = true;
        printf("it->second: %d \n", it->second);
+       printf("match on: %s", GetForceSubplanToken(path, m_query_block->join).c_str());
+    }else{
+       //printf("no match on: %s", GetForceSubplanToken(path, m_query_block->join).c_str());
     }
   }
 
@@ -6545,25 +6543,6 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
   CacheCostInfoForJoinConditions(thd, query_block, &graph, trace);
 
 
-  /*
-  if(thd->pin){
-    if (query_block->opt_hints_qb &&
-      !(query_block->active_options() & SELECT_STRAIGHT_JOIN)){
-        
-      }
-    query_block->opt_hints_qb->apply_join_order_hints(join);
-    if (query_block->opt_hints_qb &&
-      !(query_block->active_options() & SELECT_STRAIGHT_JOIN)){
-      
-      for (uint hint_idx = 0; hint_idx < join_order_hints.size(); hint_idx++) {
-        PT_qb_level_hint *hint = join_order_hints[hint_idx];
-        vector<Hint_param_table_list> *hint_table_lists = hint->get_all_table_lists();
-
-      }
-    }
-  }
-
-*/
   // Figure out if any later sort will need row IDs.
   bool need_rowid = false;
   if (query_block->is_explicitly_grouped() || join->order.order != nullptr ||
@@ -6769,6 +6748,14 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     }
   }
 
+  std::string hinted_hashes = "";
+  for (AccessPath *root_path : root_candidates) {
+    if(root_path->hinted){
+      GetHashPinTextForCsv(root_path, join, &hinted_hashes);
+    }
+  }
+  printf("hashes before filter: \n%s \n", hinted_hashes.c_str());
+
   // Add the final predicates to the root candidates, and expand FILTER access
   // paths for all predicates (not only the final ones) in the entire access
   // path tree of the candidates.
@@ -6845,6 +6832,14 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     }
     root_candidates = std::move(new_root_candidates);
   }
+  string keeper = "";
+  for (AccessPath *root_path : root_candidates) {
+    if(root_path->hinted){
+      keeper += GetForceSubplanToken(root_path, join) + "," ;
+    }
+  }
+  printf("hashes after filter: \n%s \n", keeper.c_str());
+  hinted_hashes +=keeper;
 
   // Apply GROUP BY, if applicable. We currently always do this by sorting
   // first and then using streaming aggregation.
@@ -6932,7 +6927,15 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     // Final setup will be done in FinalizePlanForQueryBlock(),
     // when we have all materialization done.
   }
-
+/*
+  hinted_hashes = "";
+  for (AccessPath *root_path : root_candidates) {
+    if(root_path->hinted){
+      hinted_hashes += GetForceSubplanToken(root_path, join);
+    }
+  }
+  printf("hashes after aggregate and stream: \n %s \n", hinted_hashes.c_str());
+*/
   // Before we apply the HAVING condition, make sure its used_tables() cache is
   // refreshed. The condition might have been rewritten by
   // FinalizePlanForQueryBlock() to point into a temporary table in a previous
@@ -7069,10 +7072,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                           return a->cost < b->cost;
                         });
 
-
-  std::string for_csv = "";
-  GetHashPinTextForCsv(root_path, join, &for_csv);
-  printf("%s", for_csv.c_str());
+  printf("statement digest: %s \n", current_thd->statement_digest_text.c_str());
 
 
   //remove non-pinned alternatives from the list
@@ -7084,7 +7084,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
         --i;
       }
     }
-    printf("number of hinted plans left: %ld \n", root_candidates.size() );
+    printf("number of pinned plans left: %ld \n", root_candidates.size() );
     AccessPath *candidate_root_path = *std::min_element(root_candidates.begin(), root_candidates.end(),
                         [](const AccessPath *a, const AccessPath *b) {
                           return a->cost < b->cost;
@@ -7119,6 +7119,10 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     if (&candidate_root_path != root_candidates.end() && candidate_root_path->hinted){
       printf("hinted plan found\n");
       root_path = candidate_root_path;
+
+      printf("The final hinted plan hash: %s \n", GetForceSubplanToken(root_path, join).c_str());
+      hinted_hashes += GetForceSubplanToken(root_path, join);
+      printf("hashes after aggregate and stream: \n%s \n", hinted_hashes.c_str());
     }else{
       printf("no hinted plan could be found! \n");
     }
