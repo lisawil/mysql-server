@@ -2496,7 +2496,6 @@ void free_tmp_table(TABLE *table) {
   */
   if (share->decrement_ref_count() == 0)  // no more TABLE objects
   {
-    printf("buy buy own_root! \n");
     MEM_ROOT own_root = std::move(share->mem_root);
     destroy(table);
     own_root.Clear();

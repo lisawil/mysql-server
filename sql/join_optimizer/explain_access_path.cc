@@ -1807,8 +1807,14 @@ static string GetForceSubplanToken(const Json_object *obj,
 
 */
 static void RemoveParameters(string &json_for_digest){
-  int min_search_pos;
-  int pos_of_comparator = -1;
+  //are there any dangerous values at all?
+  size_t pos_of_first_non_index_value = json_for_digest.find_first_of("1234567890'" , 0);
+  if(pos_of_first_non_index_value == std::string::npos){ // there are no dangerous values
+      return;
+  }
+
+  size_t min_search_pos;
+  size_t pos_of_comparator = -1;
   if(json_for_digest.find("Filter") != std::string::npos){
     
     min_search_pos = 10;
@@ -1817,19 +1823,28 @@ static void RemoveParameters(string &json_for_digest){
 
   }else {return;}
   do { 
-    int pos_of_equals = json_for_digest.find("=", min_search_pos) == std::string::npos ? 10000000 : json_for_digest.find("=", min_search_pos);
-    int pos_of_greater = json_for_digest.find(">", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find(">", min_search_pos);
-    int pos_of_lesser = json_for_digest.find("<", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find("<", min_search_pos);
-    int pos_of_like = json_for_digest.find("like", min_search_pos) == std::string::npos ? 10000000 : json_for_digest.find("like", min_search_pos);
-    pos_of_comparator = std::min(pos_of_equals, std::min(pos_of_greater, pos_of_lesser));
+    size_t pos_of_equals = json_for_digest.find("=", min_search_pos) == std::string::npos ? 10000000 : json_for_digest.find("=", min_search_pos);
+    size_t pos_of_greater = json_for_digest.find(">", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find(">", min_search_pos);
+    size_t pos_of_lesser = json_for_digest.find("<", min_search_pos)== std::string::npos ? 10000000 : json_for_digest.find("<", min_search_pos);
+    size_t pos_of_like = json_for_digest.find("like", min_search_pos) == std::string::npos ? 10000000 : json_for_digest.find("like", min_search_pos);
     pos_of_comparator = std::min(pos_of_equals, std::min(pos_of_greater, std::min(pos_of_lesser, pos_of_like)));
-
-    if(pos_of_comparator<10000000){
-        int pos_of_parenthesis = json_for_digest.find(")", pos_of_comparator);
-        json_for_digest.erase(pos_of_comparator+1, pos_of_parenthesis-1);
-        min_search_pos = pos_of_comparator+1;
+    
+    // dangerous values that might be not-indexes, like numbers and string variables
+    pos_of_first_non_index_value = json_for_digest.find_first_of("1234567890'" , pos_of_comparator);
+    if(pos_of_first_non_index_value == std::string::npos){ // there are no dangerous values
+      return;
     }
-  }while(pos_of_comparator<10000000);
+    
+    size_t pos_of_parenthesis = json_for_digest.find(")", pos_of_comparator);
+
+    if(pos_of_parenthesis >  pos_of_first_non_index_value){// dangerous values inside the parenthesis
+        
+        json_for_digest.erase(pos_of_comparator+1, pos_of_parenthesis-1); //remove dangerous values
+        min_search_pos = pos_of_comparator+1;
+    }else{
+      min_search_pos = pos_of_parenthesis; // the dangerous values where not in this parenthesis
+    }
+  }while(min_search_pos < json_for_digest.length()); // if the entire string is checked 
 }
 
 static string GetForceSubplanToken2(const Json_object *obj,

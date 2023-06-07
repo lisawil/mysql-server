@@ -1883,8 +1883,6 @@ bool Query_block::optimize(THD *thd, bool finalize_access_paths) {
   join = join_local;
   thd->unlock_query_plan();
 
-  printf("right before join->optimize() \n");
-
   if (join->optimize(finalize_access_paths)) return true;
 
   if (join->zero_result_cause && !is_implicitly_grouped()) return false;

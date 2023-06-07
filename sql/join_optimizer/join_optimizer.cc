@@ -3412,7 +3412,7 @@ void CostingReceiver::ProposeHashJoin(
   join_path.hash_join().rewrite_semi_to_inner = rewrite_semi_to_inner;
   join_path.hash_join().tables_to_get_rowid_for = 0;
   join_path.hash_join().allow_spill_to_disk = true;
-  join_path.hinted = IsHintedAccessPath(left, right, left_path, right_path);
+  join_path.pinned = current_thd->pin ? IsHintedAccessPath(left, right, left_path, right_path) : false;
 
   // The rows from the inner side of a hash join come in different order from
   // that of the underlying scan, so we need to store row IDs for any
@@ -3422,22 +3422,6 @@ void CostingReceiver::ProposeHashJoin(
   if (Overlaps(m_update_delete_target_nodes, left | right)) {
     FindTablesToGetRowidFor(&join_path);
   }
-/*
-  if (current_thd->pin){
-    if (edge->expr->left->tables_in_subtree ||
-    edge->expr->right->tables_in_subtree have two + bits set in them and not hinted
-    bye){}
-
-    else if(edge->expr->left->tables_in_subtree &&
-    edge->expr->right->tables_in_subtree have one bit set each, 
-    check the ordering and set hinted if perfect match on order){}
-    
-    else if(edge->expr->left->tables_in_subtree // in hinted combinations 
-    edge->expr->right->tables_in_subtree // in hinted combinations 
-    edge->expr->tables_in_subtree; // in hinted combinations 
-    )
-  }
-*/
   // See the equivalent code in ProposeNestedLoopJoin().
   if (rewrite_semi_to_inner) {
     int ordering_idx = edge->ordering_idx_needed_for_semijoin_rewrite;
@@ -3890,7 +3874,7 @@ void CostingReceiver::ProposeNestedLoopJoin(
   join_path.nested_loop_join().already_expanded_predicates = false;
   join_path.nested_loop_join().outer = left_path;
   join_path.nested_loop_join().inner = right_path;
-  join_path.hinted = IsHintedAccessPath(left, right, left_path, right_path);
+  join_path.pinned = current_thd->pin ? IsHintedAccessPath(left, right, left_path, right_path) : false;
   if (rewrite_semi_to_inner) {
     // This join is a semijoin (which is non-commutative), but the caller wants
     // us to try to invert it anyway; or to be precise, it has already inverted
@@ -4170,8 +4154,8 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
 #endif
 
   uint32_t flags = 0;
-
-  /*
+if(current_thd->hash_pinned){
+   /*
   if(a.pinned){
     flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
   }
@@ -4191,6 +4175,15 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
   }else if(b.pinned){
     return PathComparisonResult::SECOND_DOMINATES;
   }
+}else if(current_thd->pin){
+  if(a.pinned && b.pinned){
+  }else if(a.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
+  }else if(b.pinned){
+    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
+  }
+}
+ 
 
   if (a.parameter_tables != b.parameter_tables) {
     if (!IsSubset(a.parameter_tables, b.parameter_tables)) {
@@ -4236,13 +4229,6 @@ PathComparisonResult CompareAccessPaths(const LogicalOrderings &orderings,
     } else if (b.immediate_update_delete_table == -1) {
       flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
     }
-  }
-
-  if(a.hinted && b.hinted){
-  }else if(a.hinted){
-    flags = AddFlag(flags, FuzzyComparisonResult::FIRST_BETTER);
-  }else if(b.hinted){
-    flags = AddFlag(flags, FuzzyComparisonResult::SECOND_BETTER);
   }
 
   // Numerical cost dimensions are compared fuzzily in order to treat paths
@@ -4587,7 +4573,7 @@ bool CostingReceiver::IsHintedAccessPath(hypergraph::NodeMap left, hypergraph::N
       }
   }
   if(node->left->bit_map_of_join == left && node->right->bit_map_of_join == right){
-    if((!AreMultipleBitsSet(left) || left_path->hinted) && (!AreMultipleBitsSet(right) || right_path->hinted)){
+    if((!AreMultipleBitsSet(left) || left_path->pinned) && (!AreMultipleBitsSet(right) || right_path->pinned)){
       return true;
     }
   }
@@ -4658,8 +4644,8 @@ AccessPath *CostingReceiver::ProposeAccessPath(
       
     if(it != current_thd->current_statement_token_map->end() && it->second>0){
       path->pinned = true;
-       printf("it->second: %d \n", it->second);
-       printf("match on: %s", GetForceSubplanToken(path, m_query_block->join).c_str());
+       //printf("it->second: %d \n", it->second);
+       //printf("match on: %s", GetForceSubplanToken(path, m_query_block->join).c_str());
     }else{
        //printf("no match on: %s", GetForceSubplanToken(path, m_query_block->join).c_str());
     }
@@ -4820,7 +4806,7 @@ AccessPath MakeSortPathWithoutFilesort(THD *thd, AccessPath *child,
   sort_path.sort().limit = HA_POS_ERROR;
   sort_path.sort().force_sort_rowids = false;
   EstimateSortCost(&sort_path);
-  sort_path.hinted = child->hinted;
+  sort_path.pinned = thd->pin ? child->pinned : false;
   return sort_path;
 }
 
@@ -5463,7 +5449,7 @@ AccessPath CreateStreamingAggregationPath(THD *thd, AccessPath *path,
   aggregate_path.type = AccessPath::AGGREGATE;
   aggregate_path.aggregate().child = child_path;
   aggregate_path.aggregate().rollup = rollup;
-  aggregate_path.hinted = child_path->hinted;
+  aggregate_path.pinned = thd->pin ? child_path->pinned : false;
 
   EstimateAggregateCost(&aggregate_path, query_block, trace);
   return aggregate_path;
@@ -5522,7 +5508,7 @@ void ApplyHavingCondition(THD *thd, Item *having_cond, Query_block *query_block,
     AccessPath filter_path;
     filter_path.type = AccessPath::FILTER;
     filter_path.filter().child = root_path;
-    filter_path.hinted = root_path->hinted;
+    filter_path.pinned = thd->pin ? root_path->pinned : false;
     filter_path.filter().condition = having_cond;
     // We don't currently bother with materializing subqueries
     // in HAVING, as they should be rare.
@@ -5563,7 +5549,7 @@ AccessPath MakeSortPathForDistinct(
   sort_path.sort().unwrap_rollup = false;
   sort_path.sort().limit = HA_POS_ERROR;
   sort_path.sort().force_sort_rowids = false;
-  sort_path.hinted = root_path->hinted; //nod appliccable?
+  sort_path.pinned = thd->pin ? root_path->pinned : false; //nod appliccable?
 
   if (aggregation_is_unordered) {
     // Even though we create a sort node for the distinct operation,
@@ -6447,7 +6433,7 @@ auto func = [for_csv](AccessPath *subpath, JOIN * join_ptr) {
     *for_csv += GetForceSubplanToken(subpath, join_ptr) + ",";
     return true;
 };
-  *for_csv = current_thd->statement_digest_text + std::string(",5,");
+  *for_csv += current_thd->statement_digest_text + std::string(",5,");
   WalkAccessPaths(root_path, join, WalkAccessPathPolicy::ENTIRE_TREE, func, true);
 }
 /**
@@ -6749,12 +6735,16 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
   }
 
   std::string hinted_hashes = "";
-  for (AccessPath *root_path : root_candidates) {
-    if(root_path->hinted){
-      GetHashPinTextForCsv(root_path, join, &hinted_hashes);
+  if(thd->pin){
+    for (AccessPath *root_path : root_candidates) {
+      if(root_path->pinned){
+        GetHashPinTextForCsv(root_path, join, &hinted_hashes);
+        hinted_hashes += " ";
+      }
     }
+    printf("hashes before filter: \n%s \n", hinted_hashes.c_str());
   }
-  printf("hashes before filter: \n%s \n", hinted_hashes.c_str());
+  
 
   // Add the final predicates to the root candidates, and expand FILTER access
   // paths for all predicates (not only the final ones) in the entire access
@@ -6832,14 +6822,16 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     }
     root_candidates = std::move(new_root_candidates);
   }
-  string keeper = "";
-  for (AccessPath *root_path : root_candidates) {
-    if(root_path->hinted){
-      keeper += GetForceSubplanToken(root_path, join) + "," ;
+  if(thd->pin){
+    string keeper = "";
+    for (AccessPath *root_path : root_candidates) {
+      if(root_path->pinned){
+        keeper += GetForceSubplanToken(root_path, join) + "," ;
+      }
     }
+    printf("hashes after filter: \n%s \n", keeper.c_str());
+    hinted_hashes +=keeper;
   }
-  printf("hashes after filter: \n%s \n", keeper.c_str());
-  hinted_hashes +=keeper;
 
   // Apply GROUP BY, if applicable. We currently always do this by sorting
   // first and then using streaming aggregation.
@@ -6927,15 +6919,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     // Final setup will be done in FinalizePlanForQueryBlock(),
     // when we have all materialization done.
   }
-/*
-  hinted_hashes = "";
-  for (AccessPath *root_path : root_candidates) {
-    if(root_path->hinted){
-      hinted_hashes += GetForceSubplanToken(root_path, join);
-    }
-  }
-  printf("hashes after aggregate and stream: \n %s \n", hinted_hashes.c_str());
-*/
+
   // Before we apply the HAVING condition, make sure its used_tables() cache is
   // refreshed. The condition might have been rewritten by
   // FinalizePlanForQueryBlock() to point into a temporary table in a previous
@@ -7072,7 +7056,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                           return a->cost < b->cost;
                         });
 
-  printf("statement digest: %s \n", current_thd->statement_digest_text.c_str());
+  //printf("statement digest: %s \n", current_thd->statement_digest_text.c_str());
 
 
   //remove non-pinned alternatives from the list
@@ -7084,14 +7068,14 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
         --i;
       }
     }
-    printf("number of pinned plans left: %ld \n", root_candidates.size() );
+    //printf("number of pinned plans left: %ld \n", root_candidates.size() );
     AccessPath *candidate_root_path = *std::min_element(root_candidates.begin(), root_candidates.end(),
                         [](const AccessPath *a, const AccessPath *b) {
                           return a->cost < b->cost;
                         });
             
     if (&candidate_root_path != root_candidates.end() && candidate_root_path->pinned){
-      printf("found %ld pinned plans! bound for execute! \n", root_candidates.size());
+      //printf("found %ld pinned plans! bound for execute! \n", root_candidates.size());
       
       if(root_path->cost<candidate_root_path->cost){
         printf("There is a non-pinned plan with better cost than the pinned one \n");
@@ -7105,7 +7089,7 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
     thd->hash_pinned = false;
   }else if(thd->pin){//removes all non-hinted alternatives from the list if there are any hinted plans there
     for (size_t i = 0; i < root_candidates.size(); ++i) {
-      if(!root_candidates[i]->hinted){
+      if(!root_candidates[i]->pinned){
         (root_candidates)[i] = root_candidates.back();
         root_candidates.pop_back();
         --i;
@@ -7116,8 +7100,8 @@ AccessPath *FindBestQueryPlan(THD *thd, Query_block *query_block,
                           return a->cost < b->cost;
                         });
              
-    if (&candidate_root_path != root_candidates.end() && candidate_root_path->hinted){
-      printf("hinted plan found\n");
+    if (&candidate_root_path != root_candidates.end() && candidate_root_path->pinned){
+      //printf("hinted plan found\n");
       root_path = candidate_root_path;
 
       printf("The final hinted plan hash: %s \n", GetForceSubplanToken(root_path, join).c_str());
