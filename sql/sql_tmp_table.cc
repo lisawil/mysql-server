@@ -2476,7 +2476,6 @@ void close_tmp_table(TABLE *table) {
 void free_tmp_table(TABLE *table) {
   DBUG_TRACE;
   DBUG_PRINT("enter", ("table: %s", table->alias));
-  printf("free_tmp_table \n");
   TABLE_SHARE *const share = table->s;
 
   assert(!table->is_created() && !table->has_storage_handler() &&

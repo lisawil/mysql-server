@@ -98,11 +98,16 @@ class Explain_format_tree : public Explain_format {
   void ExplainPrintTreeNode(const Json_dom *json, int level,
                             std::string *explain,
                             std::vector<std::string> *tokens_for_force_subplan);
+  void ExplainPrintTreeNodeLight(const Json_dom *json, int level,
+                            std::vector<std::string> *tokens_for_force_subplan);
 
  private:
   bool push_select_type(mem_root_deque<Item *> *items);
 
   void AppendChildren(const Json_dom *children, int level, std::string *explain,
+                      std::vector<std::string> *tokens_for_force_subplan,
+                      std::string *child_token_digest);
+  void AppendChildrenLight(const Json_dom *children, int level,
                       std::vector<std::string> *tokens_for_force_subplan,
                       std::string *child_token_digest);
   void ExplainPrintCosts(const Json_object *obj, std::string *explain);

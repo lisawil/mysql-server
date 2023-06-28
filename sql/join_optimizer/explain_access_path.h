@@ -65,5 +65,7 @@ std::string PrintQueryPlan(int level, AccessPath *path, JOIN *join,
   FORMAT=tree shows computed tokens for both optimizers.
  */
 std::string GetForceSubplanToken(AccessPath *path, JOIN *join);
+std::string GetForceSubplanTokenLight(AccessPath *path, JOIN *join);
+
 
 #endif  // SQL_JOIN_OPTIMIZER_EXPLAIN_ACCESS_PATH_H
